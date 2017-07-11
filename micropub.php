@@ -2,17 +2,19 @@
     ini_set('display_errors', 'On');
     error_reporting(E_ALL);
 
+    $configs = include('../nanopub/configs.php');
+
 // Tell client where I can syndicate to
 if(isset($_GET['q']) && $_GET['q'] == "syndicate-to"){
     $array = array(
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://twitter.com/ROUZealot",
-                "name" => "ROUZealot on Twitter"
+                "uid" => "https://twitter.com/".$configs->twittername,
+                "name" => "Twitter"
             ),
             1 => array(
-                "uid" => "https://mastodon.social/@dgold",
-                "name" => "dgold on Mastodon"
+                "uid" => "https://".$configs->mastodonInstance,
+                "name" => "Mastodon"
             )
         )
     );
@@ -38,8 +40,8 @@ if(!empty($_POST)){
     $response = Array();
     parse_str(curl_exec($ch), $response);
     curl_close($ch);
-    // Check for scope=post
-    // Check for me=https://rhiaro.co.uk
+    // Check for scope=create
+    // Check for me=$configs->siteUrl
     $me = $response['me'];
     $iss = $response['issued_by'];
     $client = $response['client_id'];
@@ -47,7 +49,7 @@ if(!empty($_POST)){
     if(empty($response)){
         header("HTTP/1.1 401 Unauthorized");
         exit;
-    }elseif($me != "https://ascraeus.org/" || $scope != "create"){
+    }elseif($me != $configs->siteUrl || $scope != "create"){
         header("HTTP/1.1 403 Forbidden");
         exit;
     // Check that something was posted
@@ -61,9 +63,29 @@ if(!empty($_POST)){
         // For demonstration purposes, let's dump the POST request into a file and return the URL of the file.
         $time = time();
         $udate = date('U', $time);
+        $cdate = date('c', $time);
 
-        $fn = "cache/".$udate.".md";
-        $canonical = "https://ascraeus.org/micro/".$udate."/";
+        if(inarray("name", $_POST)) {
+            if(inarray("mp-slug", $_POST)) {
+                $slug = $_POST['mp-slug'];
+            } else {
+                $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $_POST['name'])));
+            }
+            if(inarray("bookmark-of", $_POST)) {
+            $fn = "../content/link/".$slug;
+            $canonical = $configs->siteUrl."/link/".$slug;
+            } else {
+            $fn = "../content/article/".$slug;
+            $canonical = $configs->siteUrl."/article/".$slug;
+            }
+            $synText = $_POST['name'];
+            $content = $_POST['content'];    
+        } else {
+            $slug = $udate;
+            $fn = "../content/micro/".$slug.".md";
+            $canonical = $configs->siteUrl."/micro/".$slug;
+        }
+
         $h = fopen($fn, 'w');
         //foreach($_POST as $k => $v){
         //    $data .= "[$k] => $v<br/>";
@@ -76,7 +98,9 @@ if(!empty($_POST)){
         //fwrite($file, $data);
         //fclose($file);
 
-        fwrite($h, $data); 
+        fwrite($h, $data);
+        file_put_contents($fn, $slug, FILE_APPEND | LOCK_EX);
+        file_put_contents($fn, $canonical, FILE_APPEND | LOCK_EX); 
         fclose($h); 
 
         //print_r($data);
