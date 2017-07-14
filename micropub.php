@@ -83,7 +83,7 @@ if(!empty($_POST)){
         header("HTTP/1.1 401 Unauthorized");
         echo 'Missing auth response';
         exit;
-    } elseif($me != "https://ascraeus.org/" || $scope != "create"){
+    } elseif($me != "https://ascraeus.org/" || !stristr($values['scope'], 'create')) {
         header("HTTP/1.1 403 Forbidden");
         echo 'Mismatch auth token / Missing create value';
         exit;
@@ -107,7 +107,7 @@ if(!empty($_POST)){
             Note that I have my content folders inside my site structure. Obviously,
             if you don't then $fn will need to be changed */
 
-        if(!empty($pname)){
+        if(!empty($pname)){ 
             if(!empty($pslug)){
                 $slug = $pslug;
             } else {
