@@ -2,14 +2,14 @@
     ini_set('display_errors', 'On');
     error_reporting(E_ALL);
 
-    $configs = include('../nanopub/configs.php');
+    $configs = include('configs.php');
 
 // Tell client where I can syndicate to
 if(isset($_GET['q']) && $_GET['q'] == "syndicate-to"){
     $array = array(
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://twitter.com/".$configs->twittername,
+                "uid" => "https://twitter.com/".$configs->twitterName,
                 "name" => "Twitter"
             ),
             1 => array(
