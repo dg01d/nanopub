@@ -53,5 +53,5 @@ See
 Licences
 --------
 
-This is released under the Free Public Licence 1.0.0. The included and unmodified TwitterAPIExchange.php is under an MIT Licence.
+This is released under the Free Public Licence 1.0.0. The included and unmodified [TwitterAPIExchange.php](https://github.com/J7mbo/twitter-api-php) is Copyright (c) 2013 James Mallison (j7mbo.co.uk) and under an MIT Licence.
  

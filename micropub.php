@@ -102,6 +102,10 @@ if(!empty($_POST)){
         $pname = $_POST['name'];
         $pbook = $_POST['bookmark-of'];
         $pslug = $_POST['mp-slug'];
+        $replytourl = $_POST['in-reply-to'];
+        if(!empty($replytourl)){
+            $replysite = parse_url($address)['host'];
+        }
 
         /*  First established the type of Post in nested order bookmark->article->
             Note that I have my content folders inside my site structure. Obviously,
@@ -148,7 +152,7 @@ if(!empty($_POST)){
                 if (strlen($MastodonText) > 450 ){
                     $MastodonText = substr($MastodonText, 0, 450);
                     $MastodonText = $MastodonText.'… '.$canonical;
-                } else {
+                } else {    
                     $MastodonText = $MastodonText.' '.$canonical;
                 }
 
@@ -159,7 +163,7 @@ if(!empty($_POST)){
                 );
 
                 // Calls the simple API from way back at the start
-                
+
                 $result_mastodon = post_to_api($mastodonUrl, $mastodonToken, $data);
                 $array_mastodon = json_decode($result_mastodon, true);
 
@@ -223,6 +227,13 @@ if(!empty($_POST)){
             file_put_contents($fn, $book_string, FILE_APPEND | LOCK_EX);
         }
 
+        if(!empty($replytourl)) {
+            $replytourl = "reply-to: \"".$replytourl."\"\n";
+            $replysite = "reply-site: \"".$replysite."\"\n";
+            file_put_contents($fn, $replytourl, FILE_APPEND | LOCK_EX); 
+            file_put_contents($fn, $replysite, FILE_APPEND | LOCK_EX);           
+        }
+        
         $slug_string = "slug: \"".$slug."\"\n";
         file_put_contents($fn, $slug_string, FILE_APPEND | LOCK_EX);
 
