@@ -228,12 +228,12 @@ if(!empty($_POST)){
         }
 
         if(!empty($replytourl)) {
-            $replytourl = "reply-to: \"".$replytourl."\"\n";
-            $replysite = "reply-site: \"".$replysite."\"\n";
+            $replytourl = "replyto: \"".$replytourl."\"\n";
+            $replysite = "replysite: \"".$replysite."\"\n";
             file_put_contents($fn, $replytourl, FILE_APPEND | LOCK_EX); 
             file_put_contents($fn, $replysite, FILE_APPEND | LOCK_EX);           
         }
-        
+
         $slug_string = "slug: \"".$slug."\"\n";
         file_put_contents($fn, $slug_string, FILE_APPEND | LOCK_EX);
 
