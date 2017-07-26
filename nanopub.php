@@ -52,7 +52,6 @@ if(isset($_GET['q']) && $_GET['q'] == "syndicate-to"){
     );
 
     $json_resp = json_encode($array);
-
     header('Content-type: application/json');
     echo $json_resp;
     exit;
@@ -60,10 +59,17 @@ if(isset($_GET['q']) && $_GET['q'] == "syndicate-to"){
 
 // Validate incoming POST requests, using IndieAuth
 // This section largely taken from rhiaro
-if(!empty($_POST)){
-    $headers = apache_request_headers();
+
+$headers = array(getallheaders());
+$contentType = $headers['0']['Content-Type'];
+if ($contentType == 'application/json') {
+    $data = json_decode(file_get_contents('php://input'), true);   
+}
+
+if (!empty($_POST) || !empty($data)) {
+    
     // Check token is valid
-    $token = $headers['Authorization'];
+    $token = $headers['0']['Authorization'];
     $ch = curl_init("https://tokens.indieauth.com/token");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, Array(
@@ -88,41 +94,51 @@ if(!empty($_POST)){
         echo 'Mismatch auth token / Missing create value';
         exit;
     // Check that something was posted
-    } elseif(empty($_POST['content'])){
+    } elseif(empty($_POST['content']) || empty($data['properties']['content']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
     } else {
 
         // All tests passed, time to get to work
 
-
         // Starts setting up some variables used throughout
         $time = time();
         $udate = date('U', $time);
         $cdate = date('c', $time);
 
-        // first get the content type from the headers
-        $array = array(getallheaders());
-        $contentType = $array['0']['Content-Type'];
+        // contentType was obtained above
 
+        // First we handle JSON requests
         if ($contentType == "application/json") {
         // Populate variables from json-encoded POST request
-            $data = json_decode(file_get_contents('php://input'), true);
-            $pname = $data['properties']['name']['0'];
-            $pbook = $data['properties']['bookmark-of']['0'];
-            $pslug = $data['properties']['mp-slug']['0'];
+            if (!empty($data['properties']['name']['0'])) {
+                $pname = $data['properties']['name']['0'];
+            }
+            if (!empty($data['properties']['bookmark-of']['0'])) {
+                $pbook = $data['properties']['bookmark-of']['0'];
+            }
+            if (!empty($data['properties']['mp-slug']['0'])) {
+                $pslug = $data['properties']['mp-slug']['0'];
+            }
             $pcontent = $data['properties']['content']['0'];
             if (isarray($pcontent)) {
                 $pcontent = $pcontent['html'];
             }
-            $replytourl = $data['properties']['in-reply-to'];
-            if (!empty($replytourl)) {
+            if (!empty($data['properties']['in-reply-to'])) {
+                $replytourl = $data['properties']['in-reply-to'];
+            }
+            if (!isset($replytourl)) {
                 $replysite = parse_url($address)['host'];
             }
-            $ptags = $data['properties']['category'];
-            $synds = $data['properties']['mp-syndicate-to'];
+            if (!empty($data['properties']['category'])) {
+                $ptags = $data['properties']['category'];
+            }
+            if (!empty($data['properties']['mp-syndicate-to'])) {
+                $synds = $data['properties']['mp-syndicate-to'];
+            }
         } else {
-            // Populate variables from form-encoded POST request
+            // Now we proceed to handle form-encoded
+            // POST request
             $pname = $_POST['name'];
             $pbook = $_POST['bookmark-of'];
             $pslug = $_POST['mp-slug'];
