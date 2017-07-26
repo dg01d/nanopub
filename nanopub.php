@@ -8,6 +8,7 @@
     $twAPIsecret = $configs->twAPIsecret;
     $twUserKey = $configs->twUserKey;
     $twUserSecret = $configs->twUserSecret;
+    $siteUrl = $configs->siteUrl;
 
 
     // Simple API call function. This could easily be used for any modern writable API
@@ -89,7 +90,7 @@ if (!empty($_POST) || !empty($data)) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
-    } elseif($me != $configs->siteUrl) {
+    } elseif($me != $siteUrl) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks valid authentication credentials';
         exit;
