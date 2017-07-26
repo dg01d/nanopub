@@ -66,8 +66,7 @@ if ($contentType == 'application/json') {
     $data = json_decode(file_get_contents('php://input'), true);   
 }
 
-if (!empty($_POST) || !empty($data)) {
-    
+if (!empty($_POST) || !empty($data)) {   
     // Check token is valid
     $token = $headers['0']['Authorization'];
     $ch = curl_init("https://tokens.indieauth.com/token");
@@ -127,15 +126,22 @@ if (!empty($_POST) || !empty($data)) {
             if (!empty($data['properties']['in-reply-to'])) {
                 $replytourl = $data['properties']['in-reply-to'];
             }
-            if (!isset($replytourl)) {
+            if (!empty($replytourl)) {
                 $replysite = parse_url($replytourl)['host'];
             }
             if (!empty($data['properties']['category'])) {
                 $ptags = $data['properties']['category'];
             }
+            if (!empty($data['properties']['photo'])) {
+                $photo = $data['properties']['photo'];
+            }
+            if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
+                $instagram = $data['properties']['syndication']['0'];
+            }
             if (!empty($data['properties']['mp-syndicate-to'])) {
                 $synds = $data['properties']['mp-syndicate-to'];
             }
+
         } else {
             // Now we proceed to handle form-encoded
             // POST request
@@ -144,6 +150,8 @@ if (!empty($_POST) || !empty($data)) {
             $pslug = $_POST['mp-slug'];
             $pcontent = $_POST['content'];
             $replytourl = $_POST['in-reply-to'];
+            $ptags = $_POST['category'];
+            $photo = array($_POST['photo']);
             // Get the array of syndication points from the submitted post
             $synds = $_POST['mp-syndicate-to'];
             if (!empty($replytourl)) {
@@ -271,6 +279,9 @@ if (!empty($_POST) || !empty($data)) {
         if (!empty($replytourl)) {
             $frontmatter['replyto'] = $replytourl;
             $frontmatter['replysite'] = $replysite;
+        }
+        if (!empty($instagram)) {
+            $frontmatter['instagram'] = $instagram;
         }
         $frontmatter['slug'] = $slug;
         $frontmatter['date'] = $cdate;
