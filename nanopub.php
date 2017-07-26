@@ -52,29 +52,11 @@ if ((isset($_GET['q']) && $_GET['q'] == "syndicate-to") || (isset($_GET['q']) &&
     );
 
     $json_resp = json_encode($array);
-    header('Content-type: application/json');
-    echo $json_resp;
-    exit;
-}{
-    $array = array(
-        "syndicate-to" => array(
-            0 => array(
-                "uid" => "https://twitter.com",
-                "name" => "Twitter"
-            ),
-            1 => array(
-                "uid" => "https://".$configs->mastodonInstance,
-                "name" => "Mastodon"
-            )
-        )
-    );
 
-    $json_resp = json_encode($array);
     header('Content-type: application/json');
     echo $json_resp;
     exit;
 }
-
 
 // Validate incoming POST requests, using IndieAuth
 // This section largely taken from rhiaro
