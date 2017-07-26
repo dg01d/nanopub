@@ -87,16 +87,21 @@ if (!empty($_POST) || !empty($data)) {
     $scope = $response['scope'];
     if(empty($response)){
         header("HTTP/1.1 401 Unauthorized");
-        echo 'Missing auth response';
+        echo 'The request lacks authentication credentials';
         exit;
-    } elseif($me != "https://ascraeus.org/" || !stristr($scope, 'create')) {
+    } elseif($me != $configs->siteUrl) {
+        header("HTTP/1.1 401 Unauthorized");
+        echo 'The request lacks valid authentication credentials';
+        exit;
+    } elseif(!stristr($scope, 'create')) {
         header("HTTP/1.1 403 Forbidden");
-        echo 'Mismatch auth token / Missing create value';
+        echo 'Client does not have access to this resource';
         exit;
     // Check that something was posted
     } elseif(empty($_POST['content']) && empty($data['properties']['content']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
+        exit;
     } else {
 
         // All tests passed, time to get to work
