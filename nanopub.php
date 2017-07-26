@@ -57,6 +57,15 @@ if(isset($_GET['q']) && $_GET['q'] == "syndicate-to"){
     exit;
 }
 
+if(isset($_GET['q']) && $_GET['q'] == "config"){
+    $array = array();
+    
+    $json_resp = json_encode($array);
+    header('Content-type: application/json');
+    echo $json_resp;
+    exit;
+}
+
 // Validate incoming POST requests, using IndieAuth
 // This section largely taken from rhiaro
 
@@ -137,6 +146,9 @@ if (!empty($_POST) || !empty($data)) {
             }
             if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
                 $instagram = $data['properties']['syndication']['0'];
+            }
+            if (!empty($data['properties']['published'])) {
+                $cdate = $data['properties']['published']['0'];
             }
             if (!empty($data['properties']['mp-syndicate-to'])) {
                 $synds = $data['properties']['mp-syndicate-to'];
