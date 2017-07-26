@@ -283,6 +283,9 @@ if (!empty($_POST) || !empty($data)) {
         if (!empty($instagram)) {
             $frontmatter['instagram'] = $instagram;
         }
+        if (!empty($photo)) {
+            $frontmatter['photo'] = $photo;
+        }
         $frontmatter['slug'] = $slug;
         $frontmatter['date'] = $cdate;
 
