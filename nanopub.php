@@ -94,7 +94,7 @@ if (!empty($_POST) || !empty($data)) {
         echo 'Mismatch auth token / Missing create value';
         exit;
     // Check that something was posted
-    } elseif(empty($_POST['content']) || empty($data['properties']['content']['0'])) {
+    } elseif(empty($_POST['content']) && empty($data['properties']['content']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
     } else {
@@ -121,14 +121,14 @@ if (!empty($_POST) || !empty($data)) {
                 $pslug = $data['properties']['mp-slug']['0'];
             }
             $pcontent = $data['properties']['content']['0'];
-            if (isarray($pcontent)) {
+            if (is_array($pcontent)) {
                 $pcontent = $pcontent['html'];
             }
             if (!empty($data['properties']['in-reply-to'])) {
                 $replytourl = $data['properties']['in-reply-to'];
             }
             if (!isset($replytourl)) {
-                $replysite = parse_url($address)['host'];
+                $replysite = parse_url($replytourl)['host'];
             }
             if (!empty($data['properties']['category'])) {
                 $ptags = $data['properties']['category'];
@@ -147,7 +147,7 @@ if (!empty($_POST) || !empty($data)) {
             // Get the array of syndication points from the submitted post
             $synds = $_POST['mp-syndicate-to'];
             if (!empty($replytourl)) {
-                $replysite = parse_url($address)['host'];
+                $replysite = parse_url($replytourl)['host'];
             }
         }
 
@@ -254,13 +254,13 @@ if (!empty($_POST) || !empty($data)) {
 
         $frontmatter = array();
         if (!empty($pname)) {
-            $frontmatter['title'] = "$pname";
+            $frontmatter['title'] = $pname;
         }
         if (!empty($pbook)) {
-            $frontmatter['link'] = "$pbook";
+            $frontmatter['link'] = $pbook;
         }
         if (!empty($ptags)) {
-            $frontmatter['tags'] = "$ptags";
+            $frontmatter['tags'] = $ptags;
         }
         if (!empty($mastodonlink)) {
             $frontmatter['masto'] = $mastodonlink;    
@@ -272,7 +272,7 @@ if (!empty($_POST) || !empty($data)) {
             $frontmatter['replyto'] = $replytourl;
             $frontmatter['replysite'] = $replysite;
         }
-        $frontmatter['slug'] = $pslug;
+        $frontmatter['slug'] = $slug;
         $frontmatter['date'] = $cdate;
 
         $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT)."\n\n";
