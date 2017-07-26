@@ -149,13 +149,25 @@ if (!empty($_POST) || !empty($data)) {
         } else {
             // Now we proceed to handle form-encoded
             // POST request
-            $pname = $_POST['name'];
-            $pbook = $_POST['bookmark-of'];
-            $pslug = $_POST['mp-slug'];
+            if (!empty($_POST['name'])) {
+                $pname = $_POST['name'];
+            }
+            if (!empty($_POST['bookmark-of'])) {
+                $pbook = $_POST['bookmark-of'];
+            }
+            if (!empty($_POST['mp-slug'])) {
+                $pslug = $_POST['mp-slug'];
+            }
             $pcontent = $_POST['content'];
-            $replytourl = $_POST['in-reply-to'];
-            $ptags = $_POST['category'];
-            $photo = array($_POST['photo']);
+            if (!empty($_POST['in-reply-to'])) {
+                $replytourl = $_POST['in-reply-to'];
+            }
+            if (!empty($_POST['category'])) {
+                $ptags = $_POST['category'];
+            }
+            if (!empty($_POST['photo'])) {
+                $photo = array($_POST['photo']);
+            }
             // Get the array of syndication points from the submitted post
             $synds = $_POST['mp-syndicate-to'];
             if (!empty($replytourl)) {
