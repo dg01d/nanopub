@@ -38,7 +38,7 @@
 
 
 // Tell Micropub clients where I can syndicate to
-if ((isset($_GET['q']) && $_GET['q'] == "syndicate-to") || (isset($_GET['q']) && $_GET['q'] == "config")) {
+if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     $array = array(
         "syndicate-to" => array(
             0 => array(
@@ -58,6 +58,29 @@ if ((isset($_GET['q']) && $_GET['q'] == "syndicate-to") || (isset($_GET['q']) &&
     echo $json_resp;
     exit;
 }
+if (isset($_GET['q']) && $_GET['q'] == "config") {
+    $array = array(
+        "media-endpoint" => "https://media.ascraeus.org/micropub.php",
+        "syndicate-to" => array(
+            0 => array(
+                "uid" => "https://twitter.com",
+                "name" => "Twitter"
+            ),
+            1 => array(
+                "uid" => "https://".$configs->mastodonInstance,
+                "name" => "Mastodon"
+            )
+        )
+    );
+
+    $json_resp = json_encode($array);
+
+    header('Content-type: application/json');
+    echo $json_resp;
+    exit;
+}
+
+
 
 // Validate incoming POST requests, using IndieAuth
 // This section largely taken from rhiaro
@@ -86,20 +109,21 @@ if (!empty($_POST) || !empty($data)) {
     $iss = $response['issued_by'];
     $client = $response['client_id'];
     $scope = $response['scope'];
+    $scopes = explode(' ', $scope); 
     if(empty($response)){
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
-    } elseif($me != $siteUrl) {
+    } elseif ($me != "$siteUrl") {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks valid authentication credentials';
         exit;
-    } elseif(!stristr($scope, 'create')) {
+    } elseif (!in_array('create', $scopes) && !in_array('post', $scopes)) {
         header("HTTP/1.1 403 Forbidden");
         echo 'Client does not have access to this resource';
         exit;
     // Check that something was posted
-    } elseif(empty($_POST['content']) && empty($data['properties']['content']['0'])) {
+    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
         exit;
