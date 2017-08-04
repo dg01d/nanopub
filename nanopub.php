@@ -143,11 +143,16 @@ if (!empty($_POST) || !empty($data)) {
         // Populate variables from json-encoded POST request
 
             if (!empty($data['properties']['checkin'])) {
-                $checkurl = $data['properties']['checkin']['properties']['url']['0'];
-                $checkloc = $data['properties']['checkin']['properties']['name']['0'];
-                $checkadd = $data['properties']['checkin']['properties']['locality']['0'].', '.$data['properties']['checkin']['properties']['region']['0'];
-                $lat = $data['properties']['checkin']['properties']['latitude']['0'];
-                $long = $data['properties']['checkin']['properties']['longitude']['0'];
+                if (!empty($data['properties']['checkin']['0']['properties']['url']['1'])) {
+                    $checkurl = $data['properties']['checkin']['0']['properties']['url']['1'];
+                } else {
+                    $checkurl = $data['properties']['checkin']['0']['properties']['url']['0'];
+                }
+                $checkurl = $data['properties']['checkin']['0']['properties']['url']['0'];
+                $checkloc = $data['properties']['checkin']['0']['properties']['name']['0'];
+                $checkadd = $data['properties']['checkin']['0']['properties']['locality']['0'].', '.$data['properties']['checkin']['properties']['region']['0'];
+                $lat = $data['properties']['checkin']['0']['properties']['latitude']['0'];
+                $long = $data['properties']['checkin']['0']['properties']['longitude']['0'];
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000,9999).'.png';
                 $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=stamen-toner&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
@@ -159,8 +164,6 @@ if (!empty($_POST) || !empty($data)) {
                 $foursq = $data['properties']['syndication']['0'];
                 $cdate = $data['properties']['published']['0'];
             } else {
-
-
                 if (!empty($data['properties']['name']['0'])) {
                     $pname = $data['properties']['name']['0'];
                 }
