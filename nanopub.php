@@ -123,7 +123,7 @@ if (!empty($_POST) || !empty($data)) {
         echo 'Client does not have access to this resource';
         exit;
     // Check that something was posted
-    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0'])) {
+    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($$data['properties']['checkin'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
         exit;
@@ -141,41 +141,61 @@ if (!empty($_POST) || !empty($data)) {
         // First we handle JSON requests
         if ($contentType == "application/json") {
         // Populate variables from json-encoded POST request
-            if (!empty($data['properties']['name']['0'])) {
-                $pname = $data['properties']['name']['0'];
-            }
-            if (!empty($data['properties']['bookmark-of']['0'])) {
-                $pbook = $data['properties']['bookmark-of']['0'];
-            }
-            if (!empty($data['properties']['mp-slug']['0'])) {
-                $pslug = $data['properties']['mp-slug']['0'];
-            }
-            $pcontent = $data['properties']['content']['0'];
-            if (is_array($pcontent)) {
-                $pcontent = $pcontent['html'];
-            }
-            if (!empty($data['properties']['in-reply-to'])) {
-                $replytourl = $data['properties']['in-reply-to'];
-            }
-            if (!empty($replytourl)) {
-                $replysite = parse_url($replytourl)['host'];
-            }
-            if (!empty($data['properties']['category'])) {
-                $ptags = $data['properties']['category'];
-            }
-            if (!empty($data['properties']['photo'])) {
-                $photo = $data['properties']['photo'];
-            }
-            if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
-                $instagram = $data['properties']['syndication']['0'];
-            }
-            if (!empty($data['properties']['published'])) {
-                $cdate = $data['properties']['published']['0'];
-            }
-            if (!empty($data['properties']['mp-syndicate-to'])) {
-                $synds = $data['properties']['mp-syndicate-to'];
-            }
 
+            if (!empty($data['properties']['checkin'])) {
+                $checkurl = $data['properties']['checkin']['properties']['url']['0'];
+                $checkloc = $data['properties']['checkin']['properties']['name']['0'];
+                $checkadd = $data['properties']['checkin']['properties']['locality']['0'].', '.$data['properties']['checkin']['properties']['region']['0'];
+                $lat = $data['properties']['checkin']['properties']['latitude']['0'];
+                $long = $data['properties']['checkin']['properties']['longitude']['0'];
+                $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000,9999).'.png';
+                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=stamen-toner&width=600&height=240&zoom=14';
+                file_put_contents($mapname, file_get_contents($url));
+                if (!empty($data['properties']['content']['0'])) {
+                    $pcontent = $data['properties']['content']['0'];
+                } else {
+                    $pcontent = ' ';
+                }
+                $foursq = $data['properties']['syndication']['0'];
+                $cdate = $data['properties']['published']['0'];
+            } else {
+
+
+                if (!empty($data['properties']['name']['0'])) {
+                    $pname = $data['properties']['name']['0'];
+                }
+                if (!empty($data['properties']['bookmark-of']['0'])) {
+                    $pbook = $data['properties']['bookmark-of']['0'];
+                }
+                if (!empty($data['properties']['mp-slug']['0'])) {
+                    $pslug = $data['properties']['mp-slug']['0'];
+                }
+                $pcontent = $data['properties']['content']['0'];
+                if (is_array($pcontent)) {
+                    $pcontent = $pcontent['html'];
+                }
+                if (!empty($data['properties']['in-reply-to'])) {
+                    $replytourl = $data['properties']['in-reply-to'];
+                }
+                if (!empty($replytourl)) {
+                    $replysite = parse_url($replytourl)['host'];
+                }
+                if (!empty($data['properties']['category'])) {
+                    $ptags = $data['properties']['category'];
+                }
+                if (!empty($data['properties']['photo'])) {
+                    $photo = $data['properties']['photo'];
+                }
+                if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
+                    $instagram = $data['properties']['syndication']['0'];
+                }
+                if (!empty($data['properties']['published'])) {
+                    $cdate = $data['properties']['published']['0'];
+                }
+                if (!empty($data['properties']['mp-syndicate-to'])) {
+                    $synds = $data['properties']['mp-syndicate-to'];
+                }
+            }
         } else {
             // Now we proceed to handle form-encoded
             // POST request
@@ -217,17 +237,17 @@ if (!empty($_POST) || !empty($data)) {
             }
             if (!empty($pbook)) {
                 $fn = "content/link/".$slug.".md";
-                $canonical = $configs->siteUrl."/link/".$slug;
+                $canonical = $configs->siteUrl."link/".$slug;
             } else {
                 $fn = "content/article/".$slug.".md";
-                $canonical = $configs->siteUrl."/article/".$slug;
+                $canonical = $configs->siteUrl."article/".$slug;
             }
             $synText = $pname;
             $content = $pcontent;    
         } else {
             $slug = $udate;
             $fn = "content/micro/".$slug.".md";
-            $canonical = $configs->siteUrl."/micro/".$slug;
+            $canonical = $configs->siteUrl."micro/".$slug;
             $content = $pcontent;
             $synText = $pcontent;
         }
@@ -331,6 +351,13 @@ if (!empty($_POST) || !empty($data)) {
         }
         if (!empty($photo)) {
             $frontmatter['photo'] = $photo;
+        }
+        if (!empty($foursq)) {
+            $frontmatter['checkin'] = $foursq;
+            $frontmatter['map'] = $mapname;
+            $frontmatter['checkloc'] = $checkloc;
+            $frontmatter['checkadd'] = $checkadd;
+            $frontmatter['checkurl'] = $checkurl;
         }
         $frontmatter['slug'] = $slug;
         $frontmatter['date'] = $cdate;
