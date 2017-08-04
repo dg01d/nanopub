@@ -123,7 +123,7 @@ if (!empty($_POST) || !empty($data)) {
         echo 'Client does not have access to this resource';
         exit;
     // Check that something was posted
-    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($$data['properties']['checkin']['0']['type']['0'])) {
+    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
         exit;
@@ -150,7 +150,11 @@ if (!empty($_POST) || !empty($data)) {
                 }
                 $checkurl = $data['properties']['checkin']['0']['properties']['url']['0'];
                 $checkloc = $data['properties']['checkin']['0']['properties']['name']['0'];
-                $checkadd = $data['properties']['checkin']['0']['properties']['locality']['0'].', '.$data['properties']['checkin']['properties']['region']['0'];
+                if ($data['properties']['checkin']['0']['properties']['locality']['0'] != $data['properties']['checkin']['0']['properties']['region']['0']) {
+                    $checkadd = $data['properties']['checkin']['0']['properties']['locality']['0'].', '.$data['properties']['checkin']['0']['properties']['region']['0'];
+                } else {
+                    $checkadd = $data['properties']['checkin']['0']['properties']['street-address']['0'].', '.$data['properties']['checkin']['0']['properties']['locality']['0'];
+                }
                 $lat = $data['properties']['checkin']['0']['properties']['latitude']['0'];
                 $long = $data['properties']['checkin']['0']['properties']['longitude']['0'];
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000,9999).'.png';
