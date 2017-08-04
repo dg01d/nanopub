@@ -123,7 +123,7 @@ if (!empty($_POST) || !empty($data)) {
         echo 'Client does not have access to this resource';
         exit;
     // Check that something was posted
-    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($$data['properties']['checkin'])) {
+    } elseif (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($$data['properties']['checkin']['0']['type']['0'])) {
         header("HTTP/1.1 400 Bad Request");
         echo "Missing content";
         exit;
