@@ -158,7 +158,7 @@ if (!empty($_POST) || !empty($data)) {
                 $lat = $data['properties']['checkin']['0']['properties']['latitude']['0'];
                 $long = $data['properties']['checkin']['0']['properties']['longitude']['0'];
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000,9999).'.png';
-                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=stamen-toner&width=600&height=240&zoom=14';
+                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
                 if (!empty($data['properties']['content']['0'])) {
                     $pcontent = $data['properties']['content']['0'];

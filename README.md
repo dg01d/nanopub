@@ -1,13 +1,13 @@
 MicroPub support for Static Blog Engine
 =======================================
 
-This basis php script provides micropub support for the [Hugo Static Blog Engine](https://gohugo.io). Incoming posts are rewritten to a [YAML-header Hugo Format](http://gohugo.io/content/front-matter/) and saved to the user's content store.
+This php script provides micropub support for the [Hugo Static Blog Engine](https://gohugo.io). Incoming posts are rewritten to a [JSON-header Hugo Format](http://gohugo.io/content/front-matter/) and saved to the user's content store.
 
-Currently, the script will handle notes, articles and bookmarks. It is not configured at this time for RSVPs, Check-Ins or replies.
+Currently, the script will handle notes, articles, replies, checkins and bookmarks. It is not configured at this time for RSVPs.
 
 Script additionally syndicates content to external silos. Currently it provides syndication to [Twitter](https://twitter.com) and [Mastodon](https://mastodon.social).
 
-Note that this is an early WIP, and it provides a solution to my specific requirements. The code is all pretty self-explanatory, and can be adjusted easily to meet different needs.
+Note that this is a WIP, and it provides a solution to my specific requirements. The code is all pretty self-explanatory, and can be adjusted easily to meet different needs.
 
 Installation
 ------------
@@ -27,7 +27,7 @@ On my site, these headers are provided as follows:
   ------------------------------------------------- -->
   <link rel="authorization_endpoint" href="https://indieauth.com/auth" />
   <link rel="token_endpoint" href="https://tokens.indieauth.com/token" />
-  <link rel="micropub" href="https://ascraeus.org/micropub.php" />
+  <link rel="micropub" href="https://ascraeus.org/nanopub.php" />
 
 ```
 
