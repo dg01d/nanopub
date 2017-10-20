@@ -1,7 +1,19 @@
 <?php
+/**
+ * nanopub - MicroPub support for Static Blog Engine
+ *
+ * @author  Daniel Goldsmith <dgold@ascraeus.org>
+ * @license https://opensource.org/licenses/FPL-1.0.0 Free Software Licence 1.0
+ * @link    https://github.com/dg01d/nanopub
+ */
 
-// Load the settings from the configuration file
-$configs = include('configs.php');
+
+
+/** 
+ *   Load the settings from the configuration file 
+ */
+
+$configs = include 'configs.php';
 $twAPIkey = $configs->twAPIkey;
 $twAPIsecret = $configs->twAPIsecret;
 $twUserKey = $configs->twUserKey;
@@ -10,11 +22,19 @@ $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
 $logfile = "content/log";
 
-// API call function. This could easily be used for any modern writable API
+/* 
+ *   API call function. This could easily be used for any modern writable API
+ *
+ *   $url    adressable url of the external API
+ *   $auth   authorisation header for the API
+ *   $adata  php array of the data to be sent
+ *
+ *   @return     HTTP response from API
+ */
 function post_to_api($url, $auth, $adata) 
 {
     $fields = '';
-    foreach($adata as $key => $value) { 
+    foreach ($adata as $key => $value) { 
         $fields .= $key . '=' . $value . '&'; 
     }
     rtrim($fields, '&');
@@ -23,33 +43,50 @@ function post_to_api($url, $auth, $adata)
     curl_setopt($post, CURLOPT_POST, count($adata));
     curl_setopt($post, CURLOPT_POSTFIELDS, $fields);
     curl_setopt($post, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($post, CURLOPT_HTTPHEADER, array(
+    curl_setopt(
+        $post, CURLOPT_HTTPHEADER, array(
         'Content-Type: application/x-www-form-urlencoded', 
         'Authorization: '.$auth
-        ));
+        )
+    );
     $result = curl_exec($post);
     curl_close($post);
     return $result;
 }
 
-// simple function to test for associative arrays
+/** 
+ *   Simple function to test for associative arrays
+ *
+ *   @return boolean value
+ */
 function isAssoc($array)
 {
-    $array = array_keys($array); return ($array !== array_keys($array));
+    $array = array_keys($array); 
+    return ($array !== array_keys($array));
 }
 
-// Validate incoming requests, using IndieAuth
-// This section largely adopted from rhiaro
+/** 
+ *   Validate incoming requests, using IndieAuth
+ *   This section largely adopted from rhiaro
+ *
+ *   $headers    the headers from an incoming connection request
+ *
+ * @return boolean value true
+ */
 function indieAuth($headers) 
 {
-    // Check token is valid
+    /**
+     * Check token is valid 
+     */
     $token = $headers['0']['Authorization'];
     $ch = curl_init("https://tokens.indieauth.com/token");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, Array(
+    curl_setopt(
+        $ch, CURLOPT_HTTPHEADER, Array(
         "Content-Type: application/x-www-form-urlencoded",
         "Authorization: $token"
-    ));
+        )
+    );
     $response = Array();
     parse_str(curl_exec($ch), $response);
     curl_close($ch);
@@ -60,7 +97,7 @@ function indieAuth($headers)
     $scope = $response['scope'];
     $scopes = explode(' ', $scope); 
 
-    if(empty($response)){
+    if (empty($response)) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
@@ -76,12 +113,22 @@ function indieAuth($headers)
         return true;
     }
 }
-// Function to replace keys in an array with values from a different one.
-// Used here to rewrite keys from Hugo's format to microformats2 syntax.
+
+/** 
+ *   Function to replace keys in an array with values from a different one.
+ *   
+ *   Used here to rewrite keys from Hugo's format to microformats2 syntax.
+ *
+ *   $array      the array of Hugo key => value frontmatter elements
+ *   $keys       an associative array, pairing key values
+ *   $filter     boolean switch, if true, values not present in $keys are removed
+ *
+ * @return associative array with keys in mf2 values
+ */
 function array_replace_keys(array $array, array $keys, $filter=false)
 {
     $newArray = array();
-    foreach($array as $key => $value) {
+    foreach ($array as $key => $value) {
         if (isset($keys[$key])) {
             $newArray[$keys[$key]] = $value;
         } elseif (!$filter) {
@@ -91,49 +138,66 @@ function array_replace_keys(array $array, array $keys, $filter=false)
     return $newArray;
 }
 
-// Function which reads existing Hugo files and rearranges them to the
-// format required by the micropub specification.
+/** 
+ *   Function which reads existing Hugo files and rearranges them to the
+ *   format required by the micropub specification.
+ *
+ *   $textFile   the Hugo content file, loaded with json frontmatter
+ *   $mfArray    Array of Hugo <=> mf2 field equivalents
+ *   $bool       boolean to determine if non-equivalent keys are stripped
+ *
+ * @return structured array from a text file with json frontmatter 
+ */
 function decode_input(string $textFile, array $mfArray, bool $bool) 
-{	
-	$topArray = explode("\n\n", $textFile);
-	$jsonArray = json_decode($topArray[0], true);
-	$jsonArray["content"] = rtrim($topArray[1]);
-	$newArray = array();
-	// All values must be arrays in mf2 syntax
-	foreach ($jsonArray as $key => $value) {
-		if (!is_array($value)) {
-			$value = [$value];
-		}
-		$newArray[$key] = $value;
-	}
-	$newArray = array_replace_keys($newArray, $mfArray, $bool);
-	return $newArray;
+{    
+    $topArray = explode("\n\n", $textFile);
+    $jsonArray = json_decode($topArray[0], true);
+    $jsonArray["content"] = rtrim($topArray[1]);
+    $newArray = array();
+    /**
+ * All values must be arrays in mf2 syntax 
+**/
+    foreach ($jsonArray as $key => $value) {
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+        $newArray[$key] = $value;
+    }
+    $newArray = array_replace_keys($newArray, $mfArray, $bool);
+    return $newArray;
 }
 
-// Function which rewrites micropub-compliant structure as a Hugo file.
+/** 
+ *   Function which rewrites micropub-compliant structure as a Hugo file.
+ *
+ *   $array      array of mf2-compliant fieldnames
+ *   $mfArray    array of Hugo <=> mf2 field equivalents
+ *
+ * @return array with Hugo fieldnames
+ */
 function recode_output($array, $mfArray) 
 {
-	$postArray = array();
-	// These cannot be arrays in Hugo syntax, but are in mf2
-	$singles = array("name", "published", "slug", "content");
-	foreach ($array as $key => $value) {
-		if (in_array($key, $singles)) {
-			$value = $value[0];
-		}
-		$postArray[$key] = $value;
-	}
-	$postArray = array_replace_keys($postArray, $mfArray, false);
-	return $postArray;
+    $postArray = array();
+    // These cannot be arrays in Hugo syntax, but are in mf2
+    $singles = array("name", "published", "slug", "content");
+    foreach ($array as $key => $value) {
+        if (in_array($key, $singles)) {
+            $value = $value[0];
+        }
+        $postArray[$key] = $value;
+    }
+    $postArray = array_replace_keys($postArray, $mfArray, false);
+    return $postArray;
 }
 
-// This array pairs Hugo namespace with mf2 namespace. 
+// This array pairs Hugo namespace with mf2 namespace.
 $mfArray = array(
-	"date" => "published",
-	"tags" => "category",
-	"replyto" => "in-reply-to",
-	"link" => "bookmark-of",
-	"title" => "name",
-	"content" => "content"	
+    "date" => "published",
+    "tags" => "category",
+    "replyto" => "in-reply-to",
+    "link" => "bookmark-of",
+    "title" => "name",
+    "content" => "content"    
 );
 
 // GET Requests:- config, syndicate to & source
@@ -263,7 +327,7 @@ if (!empty($_POST) || !empty($data)) {
                     // Updating, so need to read the existing file
                     $textFile = file_get_contents("content/".$srcUri.".md");
                     //send file for decoding
-            		$jsonArray = decode_input($textFile, $mfArray, false);
+                    $jsonArray = decode_input($textFile, $mfArray, false);
                     
                     // Now we perform the different update actions, Replace being first.
                     if (array_key_exists("replace", $data)) {
@@ -327,7 +391,7 @@ if (!empty($_POST) || !empty($data)) {
                 }
             }
         } else {
-        	// This handles new publications. 
+            // This handles new publications. 
             // Starts setting up some variables used throughout
             $time = time();
             $udate = date('U', $time);
@@ -335,8 +399,8 @@ if (!empty($_POST) || !empty($data)) {
             
             // Start with JSON requests. 
             if ($contentType == "application/json") {
-            	// Starting with checkins. These require a lot of metadata.
-            	// Structure is based on OwnYourSwarm's json payload
+                // Starting with checkins. These require a lot of metadata.
+                // Structure is based on OwnYourSwarm's json payload
                 if (!empty($data['properties']['checkin'])) {
                     $chkProperties = [$data['properties']['checkin']['0']['properties']];
                     if (!empty($chkProperties['url']['1'])) {
@@ -353,7 +417,7 @@ if (!empty($_POST) || !empty($data)) {
                     }
                     $lat = $chkProperties['latitude']['0'];
                     $long = $chkProperties['longitude']['0'];
-                    $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000,9999).'.png';
+                    $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
                     $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                     file_put_contents($mapname, file_get_contents($url));
                     if (!empty($data['properties']['content']['0'])) {
@@ -364,7 +428,7 @@ if (!empty($_POST) || !empty($data)) {
                     $foursq = $data['properties']['syndication']['0'];
                     $cdate = $data['properties']['published']['0'];
                 } else {
-                	// Non-notes tend to have a name or title
+                    // Non-notes tend to have a name or title
                     if (!empty($data['properties']['name']['0'])) {
                         $pname = $data['properties']['name']['0'];
                     }
@@ -437,9 +501,11 @@ if (!empty($_POST) || !empty($data)) {
                     $replysite = parse_url($replytourl)['host'];
                 }
             }
-                /*  First established the type of Post in nested order bookmark->article->
-                Note that I have my content folders inside my site structure. Obviously,
-                if you don't then $fn will need to be changed */
+
+            /*  First established the type of Post in nested order bookmark->article->
+             *  Note that I have my content folders inside my site structure. Obviously,
+             *  if you don't then $fn will need to be changed 
+             */
 
             if (!empty($pname)) { 
                 if (!empty($pslug)) {
@@ -449,11 +515,11 @@ if (!empty($_POST) || !empty($data)) {
                 }
                 // File locations are specific to my site for now.
                 if (!empty($pbook)) {
-                	$floc = "content/link/";
+                    $floc = "content/link/";
                     $fn = $floc . $slug . ".md";
                     $canonical = $configs->siteUrl."content/".$slug;
                 } else {
-                	$floc = "content/article/";
+                    $floc = "content/article/";
                     $fn = $floc . $slug . ".md";
                     $canonical = $configs->siteUrl . $floc . $slug;
                 }
@@ -503,8 +569,8 @@ if (!empty($_POST) || !empty($data)) {
                 }
 
                 // then twitter, with its useless 140 chars
-                if(in_array("https://twitter.com", $synds)) {
-                    if (strlen($synText) > 110){
+                if (in_array("https://twitter.com", $synds)) {
+                    if (strlen($synText) > 110) {
                         $Twtext = substr($synText, 0, 110);
                         $Twtext = $Twtext.'… '.$canonical;
                     } else {
@@ -512,7 +578,7 @@ if (!empty($_POST) || !empty($data)) {
                     }
                     // Calls the external Twitter Library
 
-                    require_once('TwitterAPIExchange.php');
+                    include_once 'TwitterAPIExchange.php';
                     
                     $settings = array(
                         'consumer_key' => $twAPIkey,
@@ -528,11 +594,15 @@ if (!empty($_POST) || !empty($data)) {
                         'status' => $Twtext
                         );
 
-                    /** Perform a POST request and echo the response **/
+                    
+                    //Perform a POST request and echo the response 
+                    
                     $twitter = new TwitterAPIExchange($settings);   
-                    $twarray = json_decode($twitter->buildOauth($url, $requestMethod)
-                                ->setPostfields($postfields)
-                                ->performRequest());
+                    $twarray = json_decode(
+                        $twitter->buildOauth($url, $requestMethod)
+                            ->setPostfields($postfields)
+                            ->performRequest()
+                    );
                     $str = $twarray->id_str;
                     $nym = $twarray->user->screen_name;
 
@@ -580,7 +650,7 @@ if (!empty($_POST) || !empty($data)) {
             $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT)."\n\n";
 
 
-			// Last part - writing the file to disk...
+            // Last part - writing the file to disk...
             $h = fopen($fn, 'w');
 
             fwrite($h, $frontjson);
