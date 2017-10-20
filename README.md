@@ -58,12 +58,11 @@ Then you'll have to configure the options in `configs.php`
 
 - Twitter Keys can be obtained using the [Create New App](https://apps.twitter.com/app/new) on twitter.
 - Mastodon Keys are more command-line driven, but relatively straightforward. See [the Mastodon API documentation](https://github.com/tootsuite/documentation/blob/master/Using-the-API/Testing-with-cURL.md)
-- As Mastodon is a federated network, you do need to explicitly specify your Mastodon Instance.
+- As Mastodon is a federated network, you do need to _explicitly_ specify your Mastodon Instance.
 - If using the micro.blog function, you need to specify your site's rss/atom feed.
 
 TODO
 ----
-
 * [X] Save all content in the correct Hugo JSON format
 * [X] Read all content from disk in correct microformats2 syntax
 * [X] Make it work with a more complete set of micropub features
@@ -71,20 +70,21 @@ TODO
 * [ ] Implement rsvp's, itineraries &c
 * [ ] Trigger sitegen on succesful operation.
 
-See
+Author
 ---
-* Author: Daniel Goldsmith <https://ascraeus.org>
-
-Thanks
-------
-* The IndieAuth validation sequence was taken from [Amy Guy's Minimal Micropub](https://rhiaro.co.uk/2015/04/minimum-viable-micropub), without which I couldn't have done this.
-* All at the #indieweb and #indieweb-dev IRC channels, who provided inspiration and support in equal measure.
+* **Daniel Goldsmith** <https://ascraeus.org>
 
 Licences
 --------
-
-- **nanopub** is released under the Free Public Licence 1.0.0. 
+- **nanopub** is released under the [Free Public Licence 1.0.0](https://opensource.org/licenses/FPL-1.0.0). 
 - The included and unmodified [TwitterAPIExchange.php](https://github.com/J7mbo/twitter-api-php) is Copyright (c) 2013 James Mallison (j7mbo.co.uk) and under an MIT Licence.
+
+Acknowledgments
+---------------
+* The IndieAuth validation sequence was taken from [Amy Guy's Minimal Micropub](https://rhiaro.co.uk/2015/04/minimum-viable-micropub), without which I couldn't have done this.
+* All at the #indieweb and #indieweb-dev IRC channels, who provided inspiration and support in equal measure.
+* [@lyda](https://phrye.com)
+
 
 >If someone is able to show me that what I think or do is not right, I will happily change, for I seek the truth, by which no one ever was truly harmed.  
 _– Marcus Aurelius, Meditations, VI.21_
