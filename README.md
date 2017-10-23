@@ -46,8 +46,7 @@ On my site, these headers are provided as follows:
 
 ```html
 
-<!-- indieweb components 
-  ------------------------------------------------- -->
+<!-- indieweb components  -->
   <link rel="authorization_endpoint" href="https://indieauth.com/auth" />
   <link rel="token_endpoint" href="https://tokens.indieauth.com/token" />
   <link rel="micropub" href="https://ascraeus.org/nanopub.php" />
