@@ -8,7 +8,6 @@
  */
 
 
-
 /** 
  *   Load the settings from the configuration file 
  */
@@ -20,7 +19,6 @@ $twUserKey = $configs->twUserKey;
 $twUserSecret = $configs->twUserSecret;
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
-$logfile = "content/log";
 
 /* 
  *   API call function. This could easily be used for any modern writable API
@@ -83,7 +81,7 @@ function indieAuth($headers)
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $ch, CURLOPT_HTTPHEADER, Array(
-        "Content-Type: application/x-www-form-urlencoded",
+        //"Content-Type: application/x-www-form-urlencoded",
         "Authorization: $token"
         )
     );
@@ -125,7 +123,7 @@ function indieAuth($headers)
  *
  * @return associative array with keys in mf2 values
  */
-function array_replace_keys(array $array, array $keys, $filter=false)
+function array_replace_keys($array, $keys, $filter)
 {
     $newArray = array();
     foreach ($array as $key => $value) {
@@ -148,7 +146,7 @@ function array_replace_keys(array $array, array $keys, $filter=false)
  *
  * @return structured array from a text file with json frontmatter 
  */
-function decode_input(string $textFile, array $mfArray, bool $bool) 
+function decode_input($textFile, $mfArray, $bool) 
 {    
     $topArray = explode("\n\n", $textFile);
     $jsonArray = json_decode($topArray[0], true);
@@ -219,7 +217,7 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
 
     $json_resp = json_encode($array);
 
-    header('Content-type: application/json');
+    header('Content-Type: application/json');
     echo $json_resp;
     exit;
 }
@@ -242,7 +240,7 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 
     $json_resp = json_encode($array);
 
-    header('Content-type: application/json');
+    header('Content-Type: application/json');
     echo $json_resp;
     exit;
 }
@@ -250,12 +248,10 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 // Take headers and other incoming data
 $headers = array(getallheaders());
 $data = array ();
-if (!empty($headers['0']['Content-type'])) {
-    $contentType = $headers['0']['Content-type'];
-} else {
-    $contentType = "application/x-www-form-urlencoded";
+if (!empty($headers['0']['Content-Type'])) {
+    $contentType = $headers['0']['Content-Type'];
 }
-if (!empty($_POST['access_token']) && $contentType == "application/x-www-form-urlencoded") {
+if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
     $headers['0']["Authorization"] = $token;
 }
@@ -267,26 +263,32 @@ if ($contentType == 'application/json') {
 if (isset($_GET['q']) && $_GET['q'] == 'source') {
     // As this is requesting the source of a post,
     // seek indieAuth validation of the request
-    if (indieAuth($headers)) {        
+    //if (indieAuth($headers)) {        
         if (!empty($_GET['url'])) {
             $subj = urldecode($_GET['url']);
             $pattern = "#$siteUrl#";
             $repl = "";
             $srcUri = preg_replace($pattern, $repl, $subj);
-            $textFile = file_get_contents("$srcUri.md");
-            
-            //send file for decoding
-            $jsonArray = decode_input($textFile, $mfArray, true);
-            
-            $respArray = array (
-                "type" => ["h-entry"],
-                "properties" => $jsonArray
-                );
-            header('Content-type: application/json');        
-            echo json_encode($respArray, JSON_PRETTY_PRINT);
-            exit;
+            $srcUri = rtrim($srcUri, "/");
+            if ($textFile = file_get_contents("../content/$srcUri.md")) {
+
+                //send file for decoding
+                $jsonArray = decode_input($textFile, $mfArray, true);
+                
+                $respArray = array (
+                    "type" => ["h-entry"],
+                    "properties" => $jsonArray
+                    );
+                header('Content-Type: application/json');        
+                echo json_encode($respArray, JSON_PRETTY_PRINT);
+                exit;
+            } else {
+                header("HTTP/1.1 404 Not Found");
+                echo "Source file not found";
+                exit;
+            }
         }
-    }
+    //}
 }
 
 if (!empty($_POST) || !empty($data)) {
@@ -308,86 +310,93 @@ if (!empty($_POST) || !empty($data)) {
                     $subj = urldecode($_POST['url']);
                 }
                 // This is based on _my_ content position. This converts URLs to local disk
-                $pattern = "#".$siteUrl."content/#";
+                $pattern = "#".$siteUrl."#";
                 $repl = "";
                 $srcUri = preg_replace($pattern, $repl, $subj);
+                $srcUri = rtrim($srcUri, "/");
                 // First delete if asked to
                 if ($action == "delete") {
-                    rename("content/$srcUri.md", "trash/$srcUri.md");
+                    rename("../content/$srcUri.md", "../trash/$srcUri.md");
                     header("HTTP/1.1 204 No Content");
+                    exit;
                 }
                 // then an undelete
                 if ($action == "undelete") {
-                    rename("trash/$srcUri.md", "content/$srcUri.md");
+                    rename("../trash/$srcUri.md", "../content/$srcUri.md");
                     header("HTTP/1.1 201 Created");
-                    header("Location: ".$siteUrl."content/".$srcUri);
+                    header("Location: ".$siteUrl.$srcUri);
+                    exit;
                 }
                 // Update can be one of a number of different actions
                 if ($action == "update") {
                     // Updating, so need to read the existing file
-                    $textFile = file_get_contents("content/".$srcUri.".md");
-                    //send file for decoding
-                    $jsonArray = decode_input($textFile, $mfArray, false);
-                    
-                    // Now we perform the different update actions, Replace being first.
-                    if (array_key_exists("replace", $data)) {
-                        if (is_array($data['replace'])) {
-                            foreach ($data['replace'] as $key => $value) {
-                                $newVal = [$key => $value];
-                                $jsonArray = array_replace($jsonArray, $newVal);
-                            }
-                        } else {
-                            header("HTTP/1.1 400 Bad Request");
-                            echo "Value of replace key must be an array";
-                            exit;
-                        }
-                    }
-                    // Adding a value
-                    if (array_key_exists("add", $data)) {
-                        if (is_array($data['add'])) {
-                            foreach ($data['add'] as $key => $value) {
-                                $newVal = [$key => $value['0']];
-                                $jsonArray = array_merge_recursive($jsonArray, $newVal);
-                            }
-                        } else {
-                            header("HTTP/1.1 400 Bad Request");
-                            echo "Value of add key must be an array";
-                            exit;
-                        }
-                    }
-                    // Delete a property based on key
-                    if (array_key_exists("delete", $data)) {
-                        if (is_array($data['delete'])) {
-                            if (isAssoc($data['delete'])) {
-                                foreach ($data['delete'] as $key => $value) {
-                                    $newVal = [$key => $value['0']];
-                                    $pos = array_keys($newVal)['0'];
-                                    $jsonArray[$pos] = array_diff($jsonArray[$pos], $newVal);
+                    if ($textFile = file_get_contents("../content/$srcUri.md")) {
+                        //send file for decoding
+                        $jsonArray = decode_input($textFile, $mfArray, false);
+                        
+                        // Now we perform the different update actions, Replace being first.
+                        if (array_key_exists("replace", $data)) {
+                            if (is_array($data['replace'])) {
+                                foreach ($data['replace'] as $key => $value) {
+                                    $newVal = [$key => $value];
+                                    $jsonArray = array_replace($jsonArray, $newVal);
                                 }
-                            } else { // delete an overall property
-                                $pos = $data['delete']['0'];
-                                unset($jsonArray[$pos]);
+                            } else {
+                                header("HTTP/1.1 400 Bad Request");
+                                echo "Value of replace key must be an array";
+                                exit;
                             }
-                        } else {
-                            header("HTTP/1.1 400 Bad Request");
-                            echo "Value of delete key must be an array";
-                            exit;
                         }
+                        // Adding a value
+                        if (array_key_exists("add", $data)) {
+                            if (is_array($data['add'])) {
+                                foreach ($data['add'] as $key => $value) {
+                                    $newVal = [$key => $value['0']];
+                                    $jsonArray = array_merge_recursive($jsonArray, $newVal);
+                                }
+                            } else {
+                                header("HTTP/1.1 400 Bad Request");
+                                echo "Value of add key must be an array";
+                                exit;
+                            }
+                        }
+                        // Delete a property based on key
+                        if (array_key_exists("delete", $data)) {
+                            if (is_array($data['delete'])) {
+                                if (isAssoc($data['delete'])) {
+                                    foreach ($data['delete'] as $key => $value) {
+                                        $newVal = [$key => $value['0']];
+                                        $pos = array_keys($newVal)['0'];
+                                        $jsonArray[$pos] = array_diff($jsonArray[$pos], $newVal);
+                                    }
+                                } else { // delete an overall property
+                                    $pos = $data['delete']['0'];
+                                    unset($jsonArray[$pos]);
+                                }
+                            } else {
+                                header("HTTP/1.1 400 Bad Request");
+                                echo "Value of delete key must be an array";
+                                exit;
+                            }
+                        }
+                        // Tasks completed, write back to original file
+                        $jsonArray = recode_output($jsonArray, array_flip($mfArray));
+                        
+                        $content = $jsonArray['content'];     
+                        unset($jsonArray['content']);
+                        $json = json_encode($jsonArray, JSON_PRETTY_PRINT)."\n\n";
+                        $fn = "../content/".$srcUri.".md";
+                        $h = fopen($fn, 'w');
+                        fwrite($h, $json);
+                        file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
+                        fclose($h); 
+                        header("HTTP/1.1 200 OK");
+                        echo json_encode($jsonArray, JSON_PRETTY_PRINT);
+ 
+                    } else {
+                        header("HTTP/1.1 404 Not Found");
+                        echo "That url does not exist";
                     }
-                    // Tasks completed, write back to original file
-                    $jsonArray = recode_output($jsonArray, array_flip($mfArray));
-                    
-                    $content = $jsonArray['content'];     
-                    unset($jsonArray['content']);
-                    $json = json_encode($jsonArray, JSON_PRETTY_PRINT)."\n\n";
-                    $fn = "content/".$srcUri.".md";
-                    $h = fopen($fn, 'w');
-                    fwrite($h, $json);
-                    file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
-                    fclose($h); 
-                    header("HTTP/1.1 200 OK");
-                    echo json_encode($jsonArray, JSON_PRETTY_PRINT);
-                    
                 }
             }
         } else {
@@ -502,9 +511,9 @@ if (!empty($_POST) || !empty($data)) {
                 }
             }
 
-            /*  First established the type of Post in nested order bookmark->article->
-             *  Note that I have my content folders inside my site structure. Obviously,
-             *  if you don't then $fn will need to be changed 
+            /*  First established the type of Post in nested order bookmark->article->note
+             *  Note that this is hardcoded to my site structure and post-kinds. Obviously,
+             *  $fn will need to be changed for different structures/kinds 
              */
 
             if (!empty($pname)) { 
@@ -515,21 +524,24 @@ if (!empty($_POST) || !empty($data)) {
                 }
                 // File locations are specific to my site for now.
                 if (!empty($pbook)) {
-                    $floc = "content/link/";
+                    $floc = "../content/link/";
                     $fn = $floc . $slug . ".md";
-                    $canonical = $configs->siteUrl."content/".$slug;
+                    $cn = "link/" . $slug;
+                    $canonical = $configs->siteUrl . $cn;
                 } else {
-                    $floc = "content/article/";
+                    $floc = "../content/article/";
                     $fn = $floc . $slug . ".md";
-                    $canonical = $configs->siteUrl . $floc . $slug;
+                    $cn = "article/" . $slug;
+                    $canonical = $configs->siteUrl . $cn;
                 }
                 $synText = $pname;
                 $content = $pcontent . "\n";    
             } else {
                 $slug = $udate;
-                $floc = "content/micro/";
+                $floc = "../content/micro/";
                 $fn = $floc . $slug . ".md";
-                $canonical = $configs->siteUrl . $floc . $slug;
+                $cn = "micro/" . $slug;
+                $canonical = $configs->siteUrl . $cn;
                 $content = $pcontent . "\n";
                 $synText = $pcontent;
             }
@@ -661,12 +673,14 @@ if (!empty($_POST) || !empty($data)) {
 
             // Some way of triggering Site Generator needs to go in here.
 
-            // ping!
+            // ping! First one to micro.blog
             if ($configs->pingMicro) {
                 $feedArray = array ("url" => $siteFeed);
                 post_to_api("https://micro.blog/ping", "null", "$feedArray");
             }
-
+            // ping! second one to switchboard
+            $switchArray = array ("hub.mode" => "publish", "hub.url" => $siteUrl);
+            post_to_api("https://switchboard.p3k.io/", "null", $switchArray);
 
             // ... and Setting headers, return location to client.
             header("HTTP/1.1 201 Created");

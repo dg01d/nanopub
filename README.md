@@ -26,7 +26,7 @@ Optional
 - Supports replacement and deletion of properties
 - As it uses a separate Media Endpoint it provides configuration query
 
-Full implementation report is available on [micropub.rocks](https://micropub.rocks/)
+[Full implementation report](https://micropub.rocks/implementation-reports/servers/132/dohoQpnIdZYxrwcpMgzj) is available on [micropub.rocks](https://micropub.rocks/)
 
 **nanopub** additionally supports syndication of content to external silos. Currently it provides syndication to [Twitter](https://twitter.com) and [Mastodon](https://mastodon.social), although it also provides a framework implementation for any modern API-based endpoint. An example is provided of the script pinging the [micro.blog](https://micro.blog) service to update the user's feed.
 
