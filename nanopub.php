@@ -76,7 +76,7 @@ function indieAuth($headers)
     /**
      * Check token is valid 
      */
-    $token = $headers['0']['Authorization'];
+    $token = $headers['0']['authorization'];
     $ch = curl_init("https://tokens.indieauth.com/token");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
@@ -247,13 +247,14 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 
 // Take headers and other incoming data
 $headers = array(getallheaders());
+$headers = array_change_key_case($headers, CASE_LOWER);
 $data = array ();
-if (!empty($headers['0']['Content-Type'])) {
-    $contentType = $headers['0']['Content-Type'];
+if (!empty($headers['0']['content-Type'])) {
+    $contentType = $headers['0']['content-Type'];
 }
 if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
-    $headers['0']["Authorization"] = $token;
+    $headers['0']["authorization"] = $token;
 }
 if ($contentType == 'application/json') {
     $data = json_decode(file_get_contents('php://input'), true);   
