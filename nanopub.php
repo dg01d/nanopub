@@ -76,7 +76,7 @@ function indieAuth($headers)
     /**
      * Check token is valid 
      */
-    $token = $headers['0']['authorization'];
+    $token = $headers['authorization'];
     $ch = curl_init("https://tokens.indieauth.com/token");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
@@ -246,19 +246,30 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 }
 
 // Take headers and other incoming data
-$headers = array(getallheaders());
+$headers = getallheaders();
+
 $headers = array_change_key_case($headers, CASE_LOWER);
 $data = array ();
-if (!empty($headers['0']['content-type'])) {
-    $contentType = $headers['0']['content-type'];
+if ($headers === false ) {
+    header("HTTP/1.1 400 Bad Request");
+    echo 'The request lacks valid headers';
+    exit;
 }
 if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
-    $headers['0']["authorization"] = $token;
+    $headers["authorization"] = $token;
 }
-if ($contentType == 'application/json') {
-    $data = json_decode(file_get_contents('php://input'), true);   
+if (isset($_POST['h'])) {
+    $h = $_POST['h'];
+    unset($_POST['h']);
+    $data = [
+        'type' => ['h-'.$h],
+        'properties' => array_map(function($a){ return is_array($a) ? $a : [$a]; }, $_POST)
+    ];
+} else {
+    $data = json_decode(file_get_contents('php://input'), true);
 }
+
 
 // Offer micropub clients source material
 if (isset($_GET['q']) && $_GET['q'] == 'source') {
@@ -292,11 +303,11 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
     //}
 }
 
-if (!empty($_POST) || !empty($data)) {
+if (!empty($data)) {
     if (indieAuth($headers)) {
-        if (empty($_POST['content']) && empty($data['properties']['content']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
+        if (empty($data['properties']['content']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
             // If this is a POST and there's no action listed, 400 exit
-            if (empty($_POST['action']) && empty($data['action'])) {
+            if (empty($data['action'])) {
                 header("HTTP/1.1 400 Bad Request");
                 echo "Missing content";
                 exit; 
@@ -305,10 +316,6 @@ if (!empty($_POST) || !empty($data)) {
                 if (!empty($data['action'])) {
                     $action = $data['action'];
                     $subj = urldecode($data['url']);
-                }
-                if (!empty($_POST['action'])) {
-                    $action = $_POST['action'];
-                    $subj = urldecode($_POST['url']);
                 }
                 // This is based on _my_ content position. This converts URLs to local disk
                 $pattern = "#".$siteUrl."#";
@@ -407,108 +414,76 @@ if (!empty($_POST) || !empty($data)) {
             $udate = date('U', $time);
             $cdate = date('c', $time);
             
-            // Start with JSON requests. 
-            if ($contentType == "application/json") {
-                // Starting with checkins. These require a lot of metadata.
-                // Structure is based on OwnYourSwarm's json payload
-                if (!empty($data['properties']['checkin'])) {
-                    $chkProperties = [$data['properties']['checkin']['0']['properties']];
-                    if (!empty($chkProperties['url']['1'])) {
-                        $checkurl = $chkProperties['url']['1'];
-                    } else {
-                        $checkurl = $chkProperties['url']['0'];
-                    }
-                    $checkurl = $chkProperties['url']['0'];
-                    $checkloc = $chkProperties['name']['0'];
-                    if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
-                        $checkadd = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
-                    } else {
-                        $checkadd = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
-                    }
-                    $lat = $chkProperties['latitude']['0'];
-                    $long = $chkProperties['longitude']['0'];
-                    $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
-                    $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
-                    file_put_contents($mapname, file_get_contents($url));
-                    if (!empty($data['properties']['content']['0'])) {
-                        $pcontent = $data['properties']['content']['0'];
-                    } else {
-                        $pcontent = ' ';
-                    }
-                    $foursq = $data['properties']['syndication']['0'];
-                    $cdate = $data['properties']['published']['0'];
+            // Starting with checkins. These require a lot of metadata.
+            // Structure is based on OwnYourSwarm's json payload
+            if (!empty($data['properties']['checkin'])) {
+                $chkProperties = [$data['properties']['checkin']['0']['properties']];
+                if (!empty($chkProperties['url']['1'])) {
+                    $checkurl = $chkProperties['url']['1'];
                 } else {
-                    // Non-notes tend to have a name or title
-                    if (!empty($data['properties']['name']['0'])) {
-                        $pname = $data['properties']['name']['0'];
-                    }
-                    // Bookmark-of could be replaced with 'like-of'
-                    if (!empty($data['properties']['bookmark-of']['0'])) {
-                        $pbook = $data['properties']['bookmark-of']['0'];
-                    }
-                    // server allows client to set a slug
-                    if (!empty($data['properties']['mp-slug']['0'])) {
-                        $pslug = $data['properties']['mp-slug']['0'];
-                    }
+                    $checkurl = $chkProperties['url']['0'];
+                }
+                $checkurl = $chkProperties['url']['0'];
+                $checkloc = $chkProperties['name']['0'];
+                if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
+                    $checkadd = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
+                } else {
+                    $checkadd = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
+                }
+                $lat = $chkProperties['latitude']['0'];
+                $long = $chkProperties['longitude']['0'];
+                $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
+                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
+                file_put_contents($mapname, file_get_contents($url));
+                if (!empty($data['properties']['content']['0'])) {
                     $pcontent = $data['properties']['content']['0'];
-                    if (is_array($pcontent)) {
-                        $pcontent = $pcontent['html'];
-                    }
-                    // indieweb replies needs url & site
-                    if (!empty($data['properties']['in-reply-to'])) {
-                        $replytourl = $data['properties']['in-reply-to'];
-                    }
-                    if (!empty($replytourl)) {
-                        $replysite = parse_url($replytourl)['host'];
-                    }
-                    // server allows clients to set category, treats as tags 
-                    if (!empty($data['properties']['category'])) {
-                        $ptags = $data['properties']['category'];
-                    }
-                    if (!empty($data['properties']['photo'])) {
-                        $photo = $data['properties']['photo'];
-                    }
-                    // Specific logic here for OwnYourGram
-                    if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
-                        $instagram = $data['properties']['syndication']['0'];
-                    }
-                    // PESOS (like OYG / OYS) already has a datestamp
-                    if (!empty($data['properties']['published'])) {
-                        $cdate = $data['properties']['published']['0'];
-                    }
-                    // Client has syndication powers!
-                    if (!empty($data['properties']['mp-syndicate-to'])) {
-                        $synds = $data['properties']['mp-syndicate-to'];
-                    }
+                } else {
+                    $pcontent = ' ';
                 }
+                $foursq = $data['properties']['syndication']['0'];
+                $cdate = $data['properties']['published']['0'];
             } else {
-                // Now we proceed to handle form-encoded POSTS, these are less
-                // feature-complete.
-                if (!empty($_POST['name'])) {
-                    $pname = $_POST['name'];
+                // Non-notes tend to have a name or title
+                if (!empty($data['properties']['name']['0'])) {
+                    $pname = $data['properties']['name']['0'];
                 }
-                if (!empty($_POST['bookmark-of'])) {
-                    $pbook = $_POST['bookmark-of'];
+                // Bookmark-of could be replaced with 'like-of'
+                if (!empty($data['properties']['bookmark-of']['0'])) {
+                    $pbook = $data['properties']['bookmark-of']['0'];
                 }
-                if (!empty($_POST['mp-slug'])) {
-                    $pslug = $_POST['mp-slug'];
+                // server allows client to set a slug
+                if (!empty($data['properties']['mp-slug']['0'])) {
+                    $pslug = $data['properties']['mp-slug']['0'];
                 }
-                $pcontent = $_POST['content'];
-                if (!empty($_POST['in-reply-to'])) {
-                    $replytourl = $_POST['in-reply-to'];
+                $pcontent = $data['properties']['content']['0'];
+                if (is_array($pcontent)) {
+                    $pcontent = $pcontent['html'];
                 }
-                if (!empty($_POST['category'])) {
-                    $ptags = $_POST['category'];
-                }
-                if (!empty($_POST['photo'])) {
-                    $photo = array($_POST['photo']);
-                }
-                // Get the array of syndication points from the submitted post
-                if (!empty($_POST['mp-syndicate-to'])) {
-                    $synds = $_POST['mp-syndicate-to'];
+                // indieweb replies needs url & site
+                if (!empty($data['properties']['in-reply-to'])) {
+                    $replytourl = $data['properties']['in-reply-to'];
                 }
                 if (!empty($replytourl)) {
                     $replysite = parse_url($replytourl)['host'];
+                }
+                // server allows clients to set category, treats as tags 
+                if (!empty($data['properties']['category'])) {
+                    $ptags = $data['properties']['category'];
+                }
+                if (!empty($data['properties']['photo'])) {
+                    $photo = $data['properties']['photo'];
+                }
+                // Specific logic here for OwnYourGram
+                if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
+                    $instagram = $data['properties']['syndication']['0'];
+                }
+                // PESOS (like OYG / OYS) already has a datestamp
+                if (!empty($data['properties']['published'])) {
+                    $cdate = $data['properties']['published']['0'];
+                }
+                // Client has syndication powers!
+                if (!empty($data['properties']['mp-syndicate-to'])) {
+                    $synds = $data['properties']['mp-syndicate-to'];
                 }
             }
 
