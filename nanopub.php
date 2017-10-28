@@ -247,14 +247,13 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 
 // Take headers and other incoming data
 $headers = getallheaders();
-
-$headers = array_change_key_case($headers, CASE_LOWER);
-$data = array ();
 if ($headers === false ) {
     header("HTTP/1.1 400 Bad Request");
     echo 'The request lacks valid headers';
     exit;
 }
+$headers = array_change_key_case($headers, CASE_LOWER);
+$data = array ();
 if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
     $headers["authorization"] = $token;
