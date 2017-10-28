@@ -249,8 +249,8 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
 $headers = array(getallheaders());
 $headers = array_change_key_case($headers, CASE_LOWER);
 $data = array ();
-if (!empty($headers['0']['content-Type'])) {
-    $contentType = $headers['0']['content-Type'];
+if (!empty($headers['0']['content-type'])) {
+    $contentType = $headers['0']['content-type'];
 }
 if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
