@@ -8,7 +8,7 @@ Currently, the script will handle the following indieweb functions:-
 - [notes](https://indieweb.org/note)
 - [articles](https://indieweb.org/article)
 - [replies](https://indieweb.org/reply), adding the **title** of the article/note you are replying to
-- [photos](https://indieweb.org/note), note that this functionality _requires_ the use of JSON-posts 
+- [photos](https://indieweb.org/note), note that this functionality _requires_ the use of JSON-posts. **nanopub** is not presently equipped to handle multipart uploads
 - [checkins](https://indieweb.org/checkin), this functionality is heavily informed by [OwnYourSwarm](https://ownyourswarm.p3k.io/) and the format that service uses
 - [bookmarks](https://indieweb.org/bookmark)
 
@@ -83,6 +83,16 @@ Acknowledgments
 * The IndieAuth validation sequence was taken from [Amy Guy's Minimal Micropub](https://rhiaro.co.uk/2015/04/minimum-viable-micropub), without which I couldn't have done this.
 * All at the #indieweb and #indieweb-dev IRC channels, who provided inspiration and support in equal measure.
 * [@lyda](https://phrye.com)
+
+Changes
+-------
+Version | Date | Notes
+-------:|:----:|:-----
+1.1 | 2017-11-14 | Rewrite of script to remove redundant and repetitive code.
+|||FIX: Added a getallheaders() replacement for web servers without apache functions
+1.0 | 2017-10-17 | First official release. 
+
+ 
 
 
 >If someone is able to show me that what I think or do is not right, I will happily change, for I seek the truth, by which no one ever was truly harmed.  

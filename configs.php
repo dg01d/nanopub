@@ -2,9 +2,10 @@
 
 return (object) array(
 	// First some settings for the site
-	'siteUrl' => 'https://example.com/',			// the URL for your liveBlog - note trailing slash
+	'siteUrl' => 'https://example.com/',			// the URL for your site - note trailing slash
 	'timezone' => 'America/Vancouver',				// http://php.net/manual/en/timezones.php
-
+	'mediaPoint' => 'https://media.org/endpoint',	// Micropub Media Endpoint
+	
 	// Config Block for Twitter
 	'twitterName' => 'poopyCakes',					// your twitter account name, don't use the @
 	'twAPIkey' => 'WomtvR2YoT',						// Create an app on dev.twitter.com for your account.

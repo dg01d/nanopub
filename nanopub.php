@@ -3,13 +3,15 @@
  * nanopub - MicroPub support for Static Blog Engine
  *
  * @author  Daniel Goldsmith <dgold@ascraeus.org>
- * @license https://opensource.org/licenses/FPL-1.0.0 Free Software Licence 1.0
+ * @license https://opensource.org/licenses/FPL-1.0.0
  * @link    https://github.com/dg01d/nanopub
+ * @category micropub
+ * @version 1.1
  */
 
 
 /** 
- *   Load the settings from the configuration file 
+ * Load the settings from the configuration file 
  */
 
 $configs = include 'configs.php';
@@ -19,15 +21,18 @@ $twUserKey = $configs->twUserKey;
 $twUserSecret = $configs->twUserSecret;
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
+date_default_timezone_set($configs->timezone);
+$udate = date('U', time());
+$cdate = date('c', time());
 
 /* 
- *   API call function. This could easily be used for any modern writable API
+ * API call function. This could easily be used for any modern writable API
  *
- *   $url    adressable url of the external API
- *   $auth   authorisation header for the API
- *   $adata  php array of the data to be sent
+ * $url    adressable url of the external API
+ * $auth   authorisation header for the API
+ * $adata  php array of the data to be sent
  *
- *   @return     HTTP response from API
+ * @return HTTP response from API
  */
 function post_to_api($url, $auth, $adata) 
 {
@@ -52,10 +57,31 @@ function post_to_api($url, $auth, $adata)
     return $result;
 }
 
-/** 
- *   Simple function to test for associative arrays
+/**
+ * getallheaders() replacement for nginx
+ * 
+ * Replaces the getallheaders function which relies on Apache
  *
- *   @return boolean value
+ * @return array incoming headers from _POST
+ */
+
+if (!function_exists('getallheaders')) {
+    function getallheaders() 
+    {
+    $headers = [];
+    foreach ($_SERVER as $name => $value) {
+        if (substr($name, 0, 5) == 'HTTP_') {
+            $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+        }
+    }
+    return $headers;
+    }
+}
+
+/** 
+ *   Test for associative arrays
+ *
+ *   @return boolean true if associative
  */
 function isAssoc($array)
 {
@@ -64,12 +90,13 @@ function isAssoc($array)
 }
 
 /** 
- *   Validate incoming requests, using IndieAuth
- *   This section largely adopted from rhiaro
+ * Validate incoming requests, using IndieAuth
+ * 
+ * This section largely adopted from rhiaro
  *
- *   $headers    the headers from an incoming connection request
+ * @headers array All headers from an incoming connection request
  *
- * @return boolean value true
+ * @return boolean true if authorised
  */
 function indieAuth($headers) 
 {
@@ -113,15 +140,15 @@ function indieAuth($headers)
 }
 
 /** 
- *   Function to replace keys in an array with values from a different one.
+ * Function to replace keys in an array with values from a different one.
  *   
- *   Used here to rewrite keys from Hugo's format to microformats2 syntax.
+ * Used here to rewrite keys from Hugo's format to microformats2 syntax.
  *
- *   $array      the array of Hugo key => value frontmatter elements
- *   $keys       an associative array, pairing key values
- *   $filter     boolean switch, if true, values not present in $keys are removed
+ * $array      the array of Hugo key => value frontmatter elements
+ * $keys       an associative array, pairing key values
+ * $filter     boolean switch, if true, values not present in $keys are removed
  *
- * @return associative array with keys in mf2 values
+ * @return array associative with keys in mf2 values
  */
 function array_replace_keys($array, $keys, $filter)
 {
@@ -137,14 +164,14 @@ function array_replace_keys($array, $keys, $filter)
 }
 
 /** 
- *   Function which reads existing Hugo files and rearranges them to the
- *   format required by the micropub specification.
+ * Reads existing Hugo files and rearranges them to the
+ * format required by the micropub specification.
  *
- *   $textFile   the Hugo content file, loaded with json frontmatter
- *   $mfArray    Array of Hugo <=> mf2 field equivalents
- *   $bool       boolean to determine if non-equivalent keys are stripped
+ * $textFile   the Hugo content file, loaded with json frontmatter
+ * $mfArray    Array of Hugo <=> mf2 field equivalents
+ * $bool       boolean to determine if non-equivalent keys are stripped
  *
- * @return structured array from a text file with json frontmatter 
+ * @return array structured array from a text file with json frontmatter 
  */
 function decode_input($textFile, $mfArray, $bool) 
 {    
@@ -152,9 +179,9 @@ function decode_input($textFile, $mfArray, $bool)
     $jsonArray = json_decode($topArray[0], true);
     $jsonArray["content"] = rtrim($topArray[1]);
     $newArray = array();
-    /**
+/*
  * All values must be arrays in mf2 syntax 
-**/
+ */
     foreach ($jsonArray as $key => $value) {
         if (!is_array($value)) {
             $value = [$value];
@@ -166,10 +193,10 @@ function decode_input($textFile, $mfArray, $bool)
 }
 
 /** 
- *   Function which rewrites micropub-compliant structure as a Hugo file.
+ * Rewrites micropub-compliant structure as a Hugo file.
  *
- *   $array      array of mf2-compliant fieldnames
- *   $mfArray    array of Hugo <=> mf2 field equivalents
+ * $array      array of mf2-compliant fieldnames
+ * $mfArray    array of Hugo <=> mf2 field equivalents
  *
  * @return array with Hugo fieldnames
  */
@@ -186,6 +213,21 @@ function recode_output($array, $mfArray)
     }
     $postArray = array_replace_keys($postArray, $mfArray, false);
     return $postArray;
+}
+
+/**
+ * @since 1.1
+ * Writes dataset to file.
+ * Put here to allow extension for different post-types in future.
+ *
+ * @return boolean 
+ */
+function write_file($frontmatter, $content, $fn)
+{
+    $frontmatter = array_filter($frontmatter);
+    $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK) . "\n\n";
+    file_put_contents($fn, $frontjson);
+    file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
 
 // This array pairs Hugo namespace with mf2 namespace.
@@ -215,17 +257,15 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
         )
     );
 
-    $json_resp = json_encode($array);
-
     header('Content-Type: application/json');
-    echo $json_resp;
+    echo json_encode($array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
     exit;
 }
 
 // Offer micropub clients full configuration
 if (isset($_GET['q']) && $_GET['q'] == "config") {
     $array = array(
-        "media-endpoint" => "https://media.ascraeus.org/micropub.php",
+        "media-endpoint" => $configs->mediaPoint,
         "syndicate-to" => array(
             0 => array(
                 "uid" => "https://twitter.com",
@@ -238,10 +278,8 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
         )
     );
 
-    $json_resp = json_encode($array);
-
     header('Content-Type: application/json');
-    echo $json_resp;
+    echo json_encode($array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
     exit;
 }
 
@@ -253,7 +291,7 @@ if ($headers === false ) {
     exit;
 }
 $headers = array_change_key_case($headers, CASE_LOWER);
-$data = array ();
+$data = array();
 if (!empty($_POST['access_token'])) {
     $token = "Bearer ".$_POST['access_token'];
     $headers["authorization"] = $token;
@@ -388,7 +426,7 @@ if (!empty($data)) {
                         }
                         // Tasks completed, write back to original file
                         $jsonArray = recode_output($jsonArray, array_flip($mfArray));
-                        
+
                         $content = $jsonArray['content'];     
                         unset($jsonArray['content']);
                         $json = json_encode($jsonArray, JSON_PRETTY_PRINT)."\n\n";
@@ -409,81 +447,86 @@ if (!empty($data)) {
         } else {
             // This handles new publications. 
             // Starts setting up some variables used throughout
-            $time = time();
-            $udate = date('U', $time);
-            $cdate = date('c', $time);
+
+            $frontmatter = [];
             
             // Starting with checkins. These require a lot of metadata.
             // Structure is based on OwnYourSwarm's json payload
             if (!empty($data['properties']['checkin'])) {
-                $chkProperties = [$data['properties']['checkin']['0']['properties']];
+                $chkProperties = $data['properties']['checkin']['0']['properties'];
                 if (!empty($chkProperties['url']['1'])) {
-                    $checkurl = $chkProperties['url']['1'];
+                    $frontmatter['checkurl'] = $chkProperties['url']['1'];
                 } else {
-                    $checkurl = $chkProperties['url']['0'];
+                    $frontmatter['checkurl'] = $chkProperties['url']['0'];
                 }
-                $checkurl = $chkProperties['url']['0'];
-                $checkloc = $chkProperties['name']['0'];
+                $frontmatter['checkloc'] = $chkProperties['name']['0'];
                 if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
-                    $checkadd = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
+                    $frontmatter['checkadd'] = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
                 } else {
-                    $checkadd = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
+                    $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
                 $lat = $chkProperties['latitude']['0'];
                 $long = $chkProperties['longitude']['0'];
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
                 $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
-                if (!empty($data['properties']['content']['0'])) {
-                    $pcontent = $data['properties']['content']['0'];
-                } else {
-                    $pcontent = ' ';
-                }
-                $foursq = $data['properties']['syndication']['0'];
-                $cdate = $data['properties']['published']['0'];
+                $frontmatter['map'] = $mapname;
+                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null; 
+                $frontmatter['checkin'] = $data['properties']['syndication']['0'];
+                $frontmatter['date'] = $data['properties']['published']['0'];
+                $frontmatter['slug'] = $udate;
             } else {
+                // Begin Processing non-checkin material
+                $props = $data['properties'];
+
                 // Non-notes tend to have a name or title
-                if (!empty($data['properties']['name']['0'])) {
-                    $pname = $data['properties']['name']['0'];
-                }
+                
+                $frontmatter['title'] = isset($props['name']['0']) ? $props['name']['0'] : null;
+
                 // Bookmark-of could be replaced with 'like-of'
-                if (!empty($data['properties']['bookmark-of']['0'])) {
-                    $pbook = $data['properties']['bookmark-of']['0'];
-                }
+
+                $frontmatter['link'] = isset($props['bookmark-of']['0']) ? $props['bookmark-of']['0'] : null;
+
                 // server allows client to set a slug
-                if (!empty($data['properties']['mp-slug']['0'])) {
-                    $pslug = $data['properties']['mp-slug']['0'];
+                
+                if (!empty($props['mp-slug']['0'])) {
+                    $frontmatter['slug'] = $props['mp-slug']['0'];
+                } elseif (!empty($props['name']['0'])) {
+                    $frontmatter['slug'] = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $frontmatter['title'])));
+                } else {
+                    $frontmatter['slug'] = $udate; 
                 }
-                $pcontent = $data['properties']['content']['0'];
-                if (is_array($pcontent)) {
-                    $pcontent = $pcontent['html'];
+
+                $content = $props['content']['0'];
+                if (is_array($content)) {
+                    $content = $content['html'];
                 }
+
+                $frontmatter['summary'] = isset($props['summary']['0']) ? isset($props['summary']['0']) : null; 
+                
                 // indieweb replies needs url & site
-                if (!empty($data['properties']['in-reply-to'])) {
-                    $replytourl = $data['properties']['in-reply-to'];
+                
+                $frontmatter['replytourl'] = isset($props['in-reply-to']) ? $props['in-reply-to'] : null;
+                if (is_array($frontmatter['replytourl'])) {
+                    $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
                 }
-                if (!empty($replytourl)) {
-                    $replysite = parse_url($replytourl)['host'];
-                }
+                
+                $frontmatter['replysite'] = isset($frontmatter['replytourl']) ? parse_url($frontmatter['replytourl'])['host'] : null;
+                
                 // server allows clients to set category, treats as tags 
-                if (!empty($data['properties']['category'])) {
-                    $ptags = $data['properties']['category'];
-                }
-                if (!empty($data['properties']['photo'])) {
-                    $photo = $data['properties']['photo'];
-                }
-                // Specific logic here for OwnYourGram
-                if (!empty($data['properties']['syndication']) && in_array("https://www.instagram.com/p", $data['properties']['syndication'])) {
-                    $instagram = $data['properties']['syndication']['0'];
-                }
+                
+                $frontmatter['tags'] = isset($props['category']) ? $props['category'] : null;
+
+                // Specific logic here for OwnYourGram            
+                $frontmatter['photo'] = isset($props['photo']) ? $props['photo'] : null;
+                
+                $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication'])) ? $props['syndication']['0'] : null;
+                
                 // PESOS (like OYG / OYS) already has a datestamp
-                if (!empty($data['properties']['published'])) {
-                    $cdate = $data['properties']['published']['0'];
-                }
+                $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
+                    
                 // Client has syndication powers!
-                if (!empty($data['properties']['mp-syndicate-to'])) {
-                    $synds = $data['properties']['mp-syndicate-to'];
-                }
+                $synds = isset($props['mp-syndicate-to']) ? $props['mp-syndicate-to'] : null;
             }
 
             /*  First established the type of Post in nested order bookmark->article->note
@@ -491,78 +534,52 @@ if (!empty($data)) {
              *  $fn will need to be changed for different structures/kinds 
              */
 
-            if (!empty($pname)) { 
-                if (!empty($pslug)) {
-                    $slug = $pslug;
-                } else {
-                    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $pname)));
-                }
+            if (!empty($frontmatter['title'])) { 
                 // File locations are specific to my site for now.
-                if (!empty($pbook)) {
-                    $floc = "../content/link/";
-                    $fn = $floc . $slug . ".md";
-                    $cn = "link/" . $slug;
-                    $canonical = $configs->siteUrl . $cn;
+                if (!empty($frontmatter['link'])) {
+                    $fn = "../content/link/" . $frontmatter['slug'] . ".md";
+                    $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
+                    $synText = $frontmatter['title'];
                 } else {
-                    $floc = "../content/article/";
-                    $fn = $floc . $slug . ".md";
+                    $fn = "../content/article/" . $slug . ".md";
                     $cn = "article/" . $slug;
-                    $canonical = $configs->siteUrl . $cn;
+                    $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
+                    $synText = $frontmatter['title'];
                 }
-                $synText = $pname;
-                $content = $pcontent . "\n";    
-            } else {
-                $slug = $udate;
-                $floc = "../content/micro/";
-                $fn = $floc . $slug . ".md";
-                $cn = "micro/" . $slug;
-                $canonical = $configs->siteUrl . $cn;
-                $content = $pcontent . "\n";
-                $synText = $pcontent;
+            } else {        
+                $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
+                $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
+                $synText = $frontmatter['content'];
             }
 
             // Syndication Posting to different services
 
             // first Mastodon, count limit 500
             if (!empty($synds)) {
-
                 if (in_array("https://".$configs->mastodonInstance, $synds)) {
                     $syntest = "mastodon";
                      
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
                     $MastodonText = urlencode($MastodonText);
-
-                    if (strlen($MastodonText) > 450 ) {
-                        $MastodonText = substr($MastodonText, 0, 450);
-                        $MastodonText = $MastodonText.'… '.$canonical;
-                    } else {    
-                        $MastodonText = $MastodonText.' '.$canonical;
-                    }
+                    $MastodonText = substr($MastodonText, 0, 450) . '… '. $canonical;
 
                     $mastodonToken = "bearer " . $configs->mastodonToken;
                     $mastodonUrl = "https://" . $configs->mastodonInstance . "/api/v1/statuses";
                     $mdata = array(
                         "status" => $MastodonText,
                     );
-
                     // Calls the simple API from way back at the start
-
                     $result_mastodon = post_to_api($mastodonUrl, $mastodonToken, $mdata);
                     $array_mastodon = json_decode($result_mastodon, true);
-
                     // Sets up a variable linking to the toot
                     $mastodonlink = $array_mastodon['url'];
                 }
 
                 // then twitter, with its useless 140 chars
                 if (in_array("https://twitter.com", $synds)) {
-                    if (strlen($synText) > 110) {
-                        $Twtext = substr($synText, 0, 110);
-                        $Twtext = $Twtext.'… '.$canonical;
-                    } else {
-                        $Twtext = $synText.' '.$canonical;
-                    }
+                    $TwText = substr($synText, 0, 260) . '… '. $canonical;
+
                     // Calls the external Twitter Library
 
                     include_once 'TwitterAPIExchange.php';
@@ -576,11 +593,13 @@ if (!empty($data)) {
 
                     $url = 'https://api.twitter.com/1.1/statuses/update.json';
                     $requestMethod = 'POST';
-
                     $postfields = array(
                         'status' => $Twtext
                         );
 
+                    if (isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com") {
+                        $postfields['in_reply_to_status_id'] = $frontmatter['replytourl'];
+                    }
                     
                     //Perform a POST request and echo the response 
                     
@@ -589,62 +608,17 @@ if (!empty($data)) {
                         $twitter->buildOauth($url, $requestMethod)
                             ->setPostfields($postfields)
                             ->performRequest()
-                    );
+                        );
                     $str = $twarray->id_str;
                     $nym = $twarray->user->screen_name;
-
                     $twitlink = "https://twitter.com/" . $nym . "/status/" . $str;
                 }
             }
 
-            // All values obtained, we format the new post per Hugo's JSON format
-
-            $frontmatter = array();
-            if (!empty($pname)) {
-                $frontmatter['title'] = $pname;
-            }
-            if (!empty($pbook)) {
-                $frontmatter['link'] = $pbook;
-            }
-            if (!empty($ptags)) {
-                $frontmatter['tags'] = $ptags;
-            }
-            if (!empty($mastodonlink)) {
-                $frontmatter['masto'] = $mastodonlink;    
-            }
-            if (!empty($twitlink)) {
-                $frontmatter['twit'] = $twitlink;
-            }
-            if (!empty($replytourl)) {
-                $frontmatter['replyto'] = $replytourl;
-                $frontmatter['replysite'] = $replysite;
-            }
-            if (!empty($instagram)) {
-                $frontmatter['instagram'] = $instagram;
-            }
-            if (!empty($photo)) {
-                $frontmatter['photo'] = $photo;
-            }
-            if (!empty($foursq)) {
-                $frontmatter['checkin'] = $foursq;
-                $frontmatter['map'] = $mapname;
-                $frontmatter['checkloc'] = $checkloc;
-                $frontmatter['checkadd'] = $checkadd;
-                $frontmatter['checkurl'] = $checkurl;
-            }
-            $frontmatter['slug'] = $slug;
-            $frontmatter['date'] = $cdate;
-            $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT)."\n\n";
-
-
+            // All values obtained, we tidy up the array and convert to json 
             // Last part - writing the file to disk...
-            $h = fopen($fn, 'w');
 
-            fwrite($h, $frontjson);
-
-            file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
-
-            fclose($h); 
+            write_file($frontmatter, $content, $fn);
 
             // Some way of triggering Site Generator needs to go in here.
 
@@ -659,7 +633,7 @@ if (!empty($data)) {
 
             // ... and Setting headers, return location to client.
             header("HTTP/1.1 201 Created");
-            header("Location: ".$canonical);
+            header("Location: ". $canonical);
         }
     }
 }
