@@ -5,10 +5,9 @@
  * @author  Daniel Goldsmith <dgold@ascraeus.org>
  * @license https://opensource.org/licenses/FPL-1.0.0
  * @link    https://github.com/dg01d/nanopub
- * @category micropub
+ * @category Micropub
  * @version 1.1
  */
-
 
 /** 
  * Load the settings from the configuration file 
@@ -68,20 +67,20 @@ function post_to_api($url, $auth, $adata)
 if (!function_exists('getallheaders')) {
     function getallheaders() 
     {
-    $headers = [];
-    foreach ($_SERVER as $name => $value) {
-        if (substr($name, 0, 5) == 'HTTP_') {
-            $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+        $headers = [];
+        foreach ($_SERVER as $name => $value) {
+            if (substr($name, 0, 5) == 'HTTP_') {
+                $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+            }
         }
-    }
-    return $headers;
+        return $headers;
     }
 }
 
 /** 
- *   Test for associative arrays
+ * Test for associative arrays
  *
- *   @return boolean true if associative
+ * @return boolean true if associative
  */
 function isAssoc($array)
 {
@@ -179,9 +178,9 @@ function decode_input($textFile, $mfArray, $bool)
     $jsonArray = json_decode($topArray[0], true);
     $jsonArray["content"] = rtrim($topArray[1]);
     $newArray = array();
-/*
- * All values must be arrays in mf2 syntax 
- */
+    /*
+     * All values must be arrays in mf2 syntax 
+     */
     foreach ($jsonArray as $key => $value) {
         if (!is_array($value)) {
             $value = [$value];
@@ -429,12 +428,8 @@ if (!empty($data)) {
 
                         $content = $jsonArray['content'];     
                         unset($jsonArray['content']);
-                        $json = json_encode($jsonArray, JSON_PRETTY_PRINT)."\n\n";
                         $fn = "../content/".$srcUri.".md";
-                        $h = fopen($fn, 'w');
-                        fwrite($h, $json);
-                        file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
-                        fclose($h); 
+                        write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, JSON_PRETTY_PRINT);
  
@@ -608,7 +603,7 @@ if (!empty($data)) {
                         $twitter->buildOauth($url, $requestMethod)
                             ->setPostfields($postfields)
                             ->performRequest()
-                        );
+                    );
                     $str = $twarray->id_str;
                     $nym = $twarray->user->screen_name;
                     $twitlink = "https://twitter.com/" . $nym . "/status/" . $str;
