@@ -497,7 +497,7 @@ if (!empty($data)) {
                     $content = $content['html'];
                 }
 
-                $frontmatter['summary'] = isset($props['summary']['0']) ? isset($props['summary']['0']) : null; 
+                $frontmatter['summary'] = isset($props['summary']['0']) ? $props['summary']['0'] : null; 
                 
                 // indieweb replies needs url & site
                 
@@ -515,7 +515,7 @@ if (!empty($data)) {
                 // Specific logic here for OwnYourGram            
                 $frontmatter['photo'] = isset($props['photo']) ? $props['photo'] : null;
                 
-                $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication'])) ? $props['syndication']['0'] : null;
+                $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication']['0'])) ? $props['syndication']['0'] : null;
                 
                 // PESOS (like OYG / OYS) already has a datestamp
                 $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
@@ -552,7 +552,6 @@ if (!empty($data)) {
             // first Mastodon, count limit 500
             if (!empty($synds)) {
                 if (in_array("https://".$configs->mastodonInstance, $synds)) {
-                    $syntest = "mastodon";
                      
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
@@ -568,11 +567,12 @@ if (!empty($data)) {
                     $result_mastodon = post_to_api($mastodonUrl, $mastodonToken, $mdata);
                     $array_mastodon = json_decode($result_mastodon, true);
                     // Sets up a variable linking to the toot
-                    $mastodonlink = $array_mastodon['url'];
+                    $frontmatter['mastodonlink'] = $array_mastodon['url'];
                 }
 
                 // then twitter, with its useless 140 chars
                 if (in_array("https://twitter.com", $synds)) {
+
                     $TwText = substr($synText, 0, 260) . '… '. $canonical;
 
                     // Calls the external Twitter Library
@@ -589,7 +589,7 @@ if (!empty($data)) {
                     $url = 'https://api.twitter.com/1.1/statuses/update.json';
                     $requestMethod = 'POST';
                     $postfields = array(
-                        'status' => $Twtext
+                        'status' => $TwText
                         );
 
                     if (isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com") {
@@ -606,7 +606,7 @@ if (!empty($data)) {
                     );
                     $str = $twarray->id_str;
                     $nym = $twarray->user->screen_name;
-                    $twitlink = "https://twitter.com/" . $nym . "/status/" . $str;
+                    $frontmatter['twitlink'] = "https://twitter.com/" . $nym . "/status/" . $str;
                 }
             }
 
