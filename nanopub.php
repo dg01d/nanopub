@@ -379,6 +379,7 @@ if (!empty($data)) {
                         $jsonArray = decode_input($textFile, $mfArray, false);
                         
                         // Now we perform the different update actions, Replace being first.
+
                         if (array_key_exists("replace", $data)) {
                             if (is_array($data['replace'])) {
                                 foreach ($data['replace'] as $key => $value) {
@@ -391,7 +392,9 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
+                        
                         // Adding a value
+
                         if (array_key_exists("add", $data)) {
                             if (is_array($data['add'])) {
                                 foreach ($data['add'] as $key => $value) {
@@ -404,7 +407,9 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
+                        
                         // Delete a property based on key
+                        
                         if (array_key_exists("delete", $data)) {
                             if (is_array($data['delete'])) {
                                 if (isAssoc($data['delete'])) {
@@ -423,7 +428,9 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
+                        
                         // Tasks completed, write back to original file
+                        
                         $jsonArray = recode_output($jsonArray, array_flip($mfArray));
 
                         $content = $jsonArray['content'];     
@@ -460,10 +467,10 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
-                $lat = $chkProperties['latitude']['0'];
-                $long = $chkProperties['longitude']['0'];
+                $frontmatter['latitude'] = $chkProperties['latitude']['0'];
+                $frontmatter['longitude'] = $chkProperties['longitude']['0'];
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
-                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$lat.';lng:'.$long.';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
+                $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$frontmatter['latitude'].';lng:'.$frontmatter['longitude'].';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
                 $frontmatter['map'] = $mapname;
                 $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null; 
@@ -536,8 +543,7 @@ if (!empty($data)) {
                     $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = "../content/article/" . $slug . ".md";
-                    $cn = "article/" . $slug;
+                    $fn = "../content/article/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
