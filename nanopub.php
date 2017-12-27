@@ -550,7 +550,7 @@ if (!empty($data)) {
             } else {        
                 $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
                 $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
-                $synText = $frontmatter['content'];
+                $synText = $content;
             }
 
             // Syndication Posting to different services
