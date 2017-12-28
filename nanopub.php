@@ -341,7 +341,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
 
 if (!empty($data)) {
     if (indieAuth($headers)) {
-        if (empty($data['properties']['content']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
+        if (empty($data['properties']['content']['0']) && empty($data['properties']['like-of']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
             // If this is a POST and there's no action listed, 400 exit
             if (empty($data['action'])) {
                 header("HTTP/1.1 400 Bad Request");
@@ -454,6 +454,7 @@ if (!empty($data)) {
             
             // Starting with checkins. These require a lot of metadata.
             // Structure is based on OwnYourSwarm's json payload
+
             if (!empty($data['properties']['checkin'])) {
                 $chkProperties = $data['properties']['checkin']['0']['properties'];
                 if (!empty($chkProperties['url']['1'])) {
@@ -461,54 +462,79 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['checkurl'] = $chkProperties['url']['0'];
                 }
+                unset($chkProperties['url']);
                 $frontmatter['checkloc'] = $chkProperties['name']['0'];
+                unset($chkProperties['name']);
                 if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
                     $frontmatter['checkadd'] = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
                 } else {
                     $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
+                unset($chkProperties['region'], $chkProperties['locality'], $chkProperties['street-address']);
                 $frontmatter['latitude'] = $chkProperties['latitude']['0'];
                 $frontmatter['longitude'] = $chkProperties['longitude']['0'];
+                unset($chkProperties['latitude'], $chkProperties['longitude']);
+
+                // Next bit creates a map and uploads it to media endpoint
+
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
                 $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$frontmatter['latitude'].';lng:'.$frontmatter['longitude'].';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
                 $frontmatter['map'] = $mapname;
-                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null; 
+
+                // Now to take out the checkins usual properties
+
+                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null;
+                unset($data['properties']['content']);
                 $frontmatter['checkin'] = $data['properties']['syndication']['0'];
+                unset($data['properties']['syndication']);
                 $frontmatter['date'] = $data['properties']['published']['0'];
+                unset($data['properties']['published']['0']);
                 $frontmatter['slug'] = $udate;
+                unset($data['properties']['access_token']);
+                foreach ($data['properties'] as $key => $value) {
+                    $frontmatter[$key] = $value;
+                }
             } else {
                 // Begin Processing non-checkin material
                 $props = $data['properties'];
+                unset($props['access_token']);
 
                 // Non-notes tend to have a name or title
-                
                 $frontmatter['title'] = isset($props['name']['0']) ? $props['name']['0'] : null;
+                unset($props['title']);
 
-                // Bookmark-of could be replaced with 'like-of'
-
+                // Bookmark-of 
                 $frontmatter['link'] = isset($props['bookmark-of']['0']) ? $props['bookmark-of']['0'] : null;
+                unset($props['bookmark-of']);
+
+                // First attempt at 'like-of'
+                $frontmatter['like-of'] = isset($props['like-of']['0']) ? $props['like-of']['0'] : null;
+                unset($props['like-of']);
+
 
                 // server allows client to set a slug
-                
                 if (!empty($props['mp-slug']['0'])) {
                     $frontmatter['slug'] = $props['mp-slug']['0'];
+                    unset($props['mp-slug']);
                 } elseif (!empty($props['name']['0'])) {
                     $frontmatter['slug'] = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $frontmatter['title'])));
                 } else {
                     $frontmatter['slug'] = $udate; 
                 }
 
+                // Hugo does not store content in the frontmatter 
                 $content = $props['content']['0'];
+                unset($props['content']);
                 if (is_array($content)) {
                     $content = $content['html'];
                 }
-
                 $frontmatter['summary'] = isset($props['summary']['0']) ? $props['summary']['0'] : null; 
-                
+                unset($props['summary']);
+
                 // indieweb replies needs url & site
-                
                 $frontmatter['replytourl'] = isset($props['in-reply-to']) ? $props['in-reply-to'] : null;
+                unset($props['in-reply-to']);
                 if (is_array($frontmatter['replytourl'])) {
                     $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
                 }
@@ -516,19 +542,26 @@ if (!empty($data)) {
                 $frontmatter['replysite'] = isset($frontmatter['replytourl']) ? parse_url($frontmatter['replytourl'])['host'] : null;
                 
                 // server allows clients to set category, treats as tags 
-                
                 $frontmatter['tags'] = isset($props['category']) ? $props['category'] : null;
+                unset($props['category']);
 
                 // Specific logic here for OwnYourGram            
                 $frontmatter['photo'] = isset($props['photo']) ? $props['photo'] : null;
+                unset($props['photo']);
                 
                 $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication']['0'])) ? $props['syndication']['0'] : null;
                 
                 // PESOS (like OYG / OYS) already has a datestamp
                 $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
+                unset($props['published']);
                     
                 // Client has syndication powers!
                 $synds = isset($props['mp-syndicate-to']) ? $props['mp-syndicate-to'] : null;
+                unset($props['mp-syndicate-to']);
+
+                foreach ($props as $key => $value) {
+                    $frontmatter[$key] = $value;
+                }
             }
 
             /*  First established the type of Post in nested order bookmark->article->note
