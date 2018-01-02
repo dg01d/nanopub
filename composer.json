@@ -1,0 +1,7 @@
+{
+    "require": {
+        "p3k/xray": "^1.4",
+        "tantek/cassis": "^0.2.16895",
+        "j7mbo/twitter-api-php": "^1.0"
+    }
+}
