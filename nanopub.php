@@ -9,9 +9,13 @@
  * @version 1.1
  */
 
+ini_set('display_errors', 'On');
+error_reporting(E_ALL);
 /** 
  * Load the settings from the configuration file 
  */
+
+require('vendor/autoload.php');
 
 $configs = include 'configs.php';
 $twAPIkey = $configs->twAPIkey;
@@ -24,12 +28,14 @@ date_default_timezone_set($configs->timezone);
 $udate = date('U', time());
 $cdate = date('c', time());
 
-/* 
+$xray = new p3k\XRay();
+
+/** 
  * API call function. This could easily be used for any modern writable API
  *
- * $url    adressable url of the external API
- * $auth   authorisation header for the API
- * $adata  php array of the data to be sent
+ * @param $url    adressable url of the external API
+ * @param $auth   authorisation header for the API
+ * @param $adata  php array of the data to be sent
  *
  * @return HTTP response from API
  */
@@ -93,7 +99,7 @@ function isAssoc($array)
  * 
  * This section largely adopted from rhiaro
  *
- * @headers array All headers from an incoming connection request
+ * @param array $headers    All headers from an incoming connection request
  *
  * @return boolean true if authorised
  */
@@ -143,9 +149,9 @@ function indieAuth($headers)
  *   
  * Used here to rewrite keys from Hugo's format to microformats2 syntax.
  *
- * $array      the array of Hugo key => value frontmatter elements
- * $keys       an associative array, pairing key values
- * $filter     boolean switch, if true, values not present in $keys are removed
+ * @param $array      the array of Hugo key => value frontmatter elements
+ * @param $keys       an associative array, pairing key values
+ * @param $filter     boolean switch, if true, values not present in $keys are removed
  *
  * @return array associative with keys in mf2 values
  */
@@ -166,9 +172,9 @@ function array_replace_keys($array, $keys, $filter)
  * Reads existing Hugo files and rearranges them to the
  * format required by the micropub specification.
  *
- * $textFile   the Hugo content file, loaded with json frontmatter
- * $mfArray    Array of Hugo <=> mf2 field equivalents
- * $bool       boolean to determine if non-equivalent keys are stripped
+ * @param $textFile   the Hugo content file, loaded with json frontmatter
+ * @param $mfArray    Array of Hugo <=> mf2 field equivalents
+ * @param $bool       boolean to determine if non-equivalent keys are stripped
  *
  * @return array structured array from a text file with json frontmatter 
  */
@@ -194,9 +200,8 @@ function decode_input($textFile, $mfArray, $bool)
 /** 
  * Rewrites micropub-compliant structure as a Hugo file.
  *
- * $array      array of mf2-compliant fieldnames
- * $mfArray    array of Hugo <=> mf2 field equivalents
- *
+ * @param $array      array of mf2-compliant fieldnames
+ * @param $mfArray    array of Hugo <=> mf2 field equivalents
  * @return array with Hugo fieldnames
  */
 function recode_output($array, $mfArray) 
@@ -224,9 +229,45 @@ function recode_output($array, $mfArray)
 function write_file($frontmatter, $content, $fn)
 {
     $frontmatter = array_filter($frontmatter);
-    $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK) . "\n\n";
+    $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK ) . "\n\n";
     file_put_contents($fn, $frontjson);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * @since 1.2
+ * Uses the XRay library to extract rich content from uris
+ *
+ * @param $url    The uri of the resource to be parsed
+ * @param $site   The hostname of the resource to be parsed
+ *                Could specify other services in configs.php
+ * @return $url_parse Array of parsed data from resource
+ */
+
+function xray_machine($url, $site)
+{
+    $xray = new p3k\XRay();
+
+    if ($site == "twitter.com") {
+        // If someone can give me a better way to get these values from external file...
+        $configs = include 'configs.php';
+        $twAPIkey = $configs->twAPIkey;
+        $twAPIsecret = $configs->twAPIsecret;
+        $twUserKey = $configs->twUserKey;
+        $twUserSecret = $configs->twUserSecret;
+        $url_parse = $xray->parse($url,
+        [
+                'timeout' => 30,
+                'twitter_api_key' => $twAPIkey,
+                'twitter_api_secret' => $twAPIsecret,
+                'twitter_access_token' => $twUserKey,
+                'twitter_access_token_secret' => $twUserSecret
+                ]
+        );
+    } else {
+        $url_parse = $xray->parse($url);
+    }
+    return $url_parse;
 }
 
 // This array pairs Hugo namespace with mf2 namespace.
@@ -341,7 +382,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
 
 if (!empty($data)) {
     if (indieAuth($headers)) {
-        if (empty($data['properties']['content']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
+        if (empty($data['properties']['content']['0']) && empty($data['properties']['like-of']['0']) && empty($data['properties']['repost-of']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
             // If this is a POST and there's no action listed, 400 exit
             if (empty($data['action'])) {
                 header("HTTP/1.1 400 Bad Request");
@@ -454,6 +495,7 @@ if (!empty($data)) {
             
             // Starting with checkins. These require a lot of metadata.
             // Structure is based on OwnYourSwarm's json payload
+
             if (!empty($data['properties']['checkin'])) {
                 $chkProperties = $data['properties']['checkin']['0']['properties'];
                 if (!empty($chkProperties['url']['1'])) {
@@ -461,74 +503,153 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['checkurl'] = $chkProperties['url']['0'];
                 }
+                unset($chkProperties['url']);
                 $frontmatter['checkloc'] = $chkProperties['name']['0'];
+                unset($chkProperties['name']);
                 if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
                     $frontmatter['checkadd'] = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
                 } else {
                     $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
+                unset($chkProperties['region'], $chkProperties['locality'], $chkProperties['street-address']);
                 $frontmatter['latitude'] = $chkProperties['latitude']['0'];
                 $frontmatter['longitude'] = $chkProperties['longitude']['0'];
+                unset($chkProperties['latitude'], $chkProperties['longitude']);
+
+                // Next bit creates a map and uploads it to media endpoint
+
                 $mapname = 'images/file-'.date('YmdHis').'-'.mt_rand(1000, 9999).'.png';
                 $url = 'http://atlas.p3k.io/map/img?marker[]=lat:'.$frontmatter['latitude'].';lng:'.$frontmatter['longitude'].';icon:small-red-cutout&basemap=osm&attribution=none&width=600&height=240&zoom=14';
                 file_put_contents($mapname, file_get_contents($url));
                 $frontmatter['map'] = $mapname;
-                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null; 
+
+                // Now to take out the checkins usual properties
+
+                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null;
+                unset($data['properties']['content']);
                 $frontmatter['checkin'] = $data['properties']['syndication']['0'];
+                unset($data['properties']['syndication']);
                 $frontmatter['date'] = $data['properties']['published']['0'];
+                unset($data['properties']['published']['0']);
                 $frontmatter['slug'] = $udate;
+                unset($data['properties']['access_token']);
+                foreach ($data['properties'] as $key => $value) {
+                    $frontmatter[$key] = $value;
+                }
             } else {
                 // Begin Processing non-checkin material
                 $props = $data['properties'];
+                unset($props['access_token']);
+
+                // Client has syndication powers!
+                $synds = isset($props['mp-syndicate-to']) ? $props['mp-syndicate-to'] : null;
+                unset($props['mp-syndicate-to']);
 
                 // Non-notes tend to have a name or title
-                
                 $frontmatter['title'] = isset($props['name']['0']) ? $props['name']['0'] : null;
+                unset($props['name']);
 
-                // Bookmark-of could be replaced with 'like-of'
-
+                // Bookmark-of 
                 $frontmatter['link'] = isset($props['bookmark-of']['0']) ? $props['bookmark-of']['0'] : null;
+                unset($props['bookmark-of']);
+
+                // First attempt at 'like-of'
+                $frontmatter['like_of'] = isset($props['like-of']) ? $props['like-of'] : null;
+                if (is_array($frontmatter['like_of'])) {
+                    $frontmatter['like_of'] = $frontmatter['like_of']['0'];
+                }
+                $frontmatter['like_site'] = isset($frontmatter['like_of']) ? hostname_of_uri($frontmatter['like_of']) : null;
+                if (isset($frontmatter['like_of'])) {
+                    $url_parse = xray_machine($frontmatter['like_of'], $frontmatter['like_site']);
+                }
+                if ($frontmatter['like_site'] == 'twitter.com') {
+                    $synds['0'] = "https://twitter.com";
+                }
+                unset($props['like-of']);
+
+                // First attempt at 'repost-of'
+                $frontmatter['repost_of'] = isset($props['repost-of']) ? $props['repost-of'] : null;
+                if (is_array($frontmatter['repost_of'])) {
+                    $frontmatter['repost_of'] = $frontmatter['repost_of']['0'];
+                }
+                $frontmatter['repost_site'] = isset($frontmatter['repost_of']) ? hostname_of_uri($frontmatter['repost_of']) : null;
+                if (isset($frontmatter['repost_of'])) {
+                    $url_parse = xray_machine($frontmatter['repost_of'], $frontmatter['repost_site']);
+                }
+                if ($frontmatter['repost_site'] == 'twitter.com') {
+                    $synds['0'] = "https://twitter.com";
+                }
+                unset($props['repost-of']);
+
+                // indieweb 'reply-to'
+                $frontmatter['replytourl'] = isset($props['in-reply-to']) ? $props['in-reply-to'] : null;               
+                if (is_array($frontmatter['replytourl'])) {
+                    $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
+                }
+                $frontmatter['replysite'] = isset($frontmatter['replytourl']) ? hostname_of_uri($frontmatter['replytourl']) : null;
+                if (isset($frontmatter['replytourl'])) {
+                    $url_parse = xray_machine($frontmatter['replytourl'], $frontmatter['replysite']);
+                }
+                if ($frontmatter['replysite'] == 'twitter.com') {
+                    $synds['0'] = "https://twitter.com";
+                }
+                unset($props['in-reply-to']);
 
                 // server allows client to set a slug
-                
                 if (!empty($props['mp-slug']['0'])) {
                     $frontmatter['slug'] = $props['mp-slug']['0'];
-                } elseif (!empty($props['name']['0'])) {
+                    unset($props['mp-slug']);
+                } elseif (!empty($frontmatter['title']['0'])) {
                     $frontmatter['slug'] = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $frontmatter['title'])));
                 } else {
                     $frontmatter['slug'] = $udate; 
                 }
 
-                $content = $props['content']['0'];
+                // Hugo does not store content in the frontmatter 
+                $content = isset($props['content']['0']) ? $props['content']['0'] : null;
+                unset($props['content']);
                 if (is_array($content)) {
                     $content = $content['html'];
                 }
-
                 $frontmatter['summary'] = isset($props['summary']['0']) ? $props['summary']['0'] : null; 
-                
-                // indieweb replies needs url & site
-                
-                $frontmatter['replytourl'] = isset($props['in-reply-to']) ? $props['in-reply-to'] : null;
-                if (is_array($frontmatter['replytourl'])) {
-                    $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
-                }
-                
-                $frontmatter['replysite'] = isset($frontmatter['replytourl']) ? parse_url($frontmatter['replytourl'])['host'] : null;
-                
+                unset($props['summary']);
+       
                 // server allows clients to set category, treats as tags 
-                
                 $frontmatter['tags'] = isset($props['category']) ? $props['category'] : null;
+                unset($props['category']);
 
                 // Specific logic here for OwnYourGram            
                 $frontmatter['photo'] = isset($props['photo']) ? $props['photo'] : null;
+                unset($props['photo']);
                 
                 $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication']['0'])) ? $props['syndication']['0'] : null;
                 
                 // PESOS (like OYG / OYS) already has a datestamp
                 $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
-                    
-                // Client has syndication powers!
-                $synds = isset($props['mp-syndicate-to']) ? $props['mp-syndicate-to'] : null;
+                unset($props['published']);
+
+                foreach ($props as $key => $value) {
+                    $frontmatter[$key] = $value;
+                }
+
+                if (isset($url_parse)) {
+                    $frontmatter['xAuthor'] = isset($url_parse['data']['author']['name']) ? $url_parse['data']['author']['name'] : null;
+                    $frontmatter['xAuthorUrl'] = isset($url_parse['data']['author']['url']) ? $url_parse['data']['author']['url'] : null;
+                    $frontmatter['xPhoto'] = isset($url_parse['data']['author']['photo']) ? $url_parse['data']['author']['photo'] : null;
+                    if (isset($url_parse['data']['name'])) {
+                        $frontmatter['xContent'] = $url_parse['data']['name'];
+                    } elseif (isset($url_parse['data']['content']['html'])) {
+                        $frontmatter['xContent'] = $url_parse['data']['content']['html'];
+                    } else {
+                        $xContent = isset($url_parse['data']['content']['text']) ? $url_parse['data']['content']['text'] : null;
+                        $frontmatter['xContent'] = auto_link($xContent, false);
+                    }
+                    $frontmatter['xPublished'] = $url_parse['data']['published'];
+                    if (isset($url_parse['data']['category'])) {
+                        $frontmatter['tags'] = $url_parse['data']['category'];
+                    }
+                }
+
             }
 
             /*  First established the type of Post in nested order bookmark->article->note
@@ -599,9 +720,20 @@ if (!empty($data)) {
                         );
 
                     if (isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com") {
-                        $postfields['in_reply_to_status_id'] = $frontmatter['replytourl'];
+                        $postfields['in_reply_to_status_id'] = tw_url_to_status_id($frontmatter['replytourl']);
                     }
-                    
+                    if (isset($frontmatter['like-of']) && $frontmatter['like-site'] == "twitter.com") {
+                        $url = 'https://api.twitter.com/1.1/favorites/create.json';
+                        unset($postfields['status']);
+                        $postfields['id'] = tw_url_to_status_id($frontmatter['like-of']);
+                    }                    
+                    if (isset($frontmatter['repost-of']) && $frontmatter['repost-site'] == "twitter.com") {
+                        $id = tw_url_to_status_id($frontmatter['repost-of']);
+                        $url = 'https://api.twitter.com/1.1/statuses/retweet/' . $id . '.json';
+                        unset($postfields['status']);
+                        $postfields['id'] = $id;
+                    }
+
                     //Perform a POST request and echo the response 
                     
                     $twitter = new TwitterAPIExchange($settings);   

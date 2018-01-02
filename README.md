@@ -7,10 +7,12 @@ Currently, the script will handle the following indieweb functions:-
 
 - [notes](https://indieweb.org/note)
 - [articles](https://indieweb.org/article)
-- [replies](https://indieweb.org/reply), adding the **title** of the article/note you are replying to
+- [replies](https://indieweb.org/reply), adding the **title** of the article/note you are replying to. Replies can be syndicated to external services.
 - [photos](https://indieweb.org/note), note that this functionality _requires_ the use of JSON-posts. **nanopub** is not presently equipped to handle multipart uploads
 - [checkins](https://indieweb.org/checkin), this functionality is heavily informed by [OwnYourSwarm](https://ownyourswarm.p3k.io/) and the format that service uses
 - [bookmarks](https://indieweb.org/bookmark)
+- [like-of](https://indieweb.org/like)
+- [repost](https://indieweb.org/repost)
 
 **nanopub** offers the following functionality as described in the formal [Micropub Specification](https://www.w3.org/TR/micropub/)
 
@@ -23,19 +25,21 @@ Optional
 --------
 - Supports updating and deleting posts
 - Supports JSON syntax and source content query
-- Supports replacement and deletion of properties
+- Supports replacement and deletion of limited set of properties
 - As it uses a separate Media Endpoint it provides configuration query
 
 [Full implementation report](https://micropub.rocks/implementation-reports/servers/132/dohoQpnIdZYxrwcpMgzj) is available on [micropub.rocks](https://micropub.rocks/)
 
 **nanopub** additionally supports syndication of content to external silos. Currently it provides syndication to [Twitter](https://twitter.com) and [Mastodon](https://mastodon.social), although it also provides a framework implementation for any modern API-based endpoint. An example is provided of the script pinging the [micro.blog](https://micro.blog) service to update the user's feed.
 
-The code is relatively self-explanatory and documented, and can be adjusted easily to meet different needs.
+The code is self-explanatory and documented, and can be adjusted easily to meet different needs.
 
 Installation
 ------------
 
 Clone the contents into the `static` folder of your Hugo installation.
+
+Since the 1.2 release, nanopub requires the use of [Composer](https://getcomposer.org/). Getting it to do all the things I wanted it to do was getting _way_ beyond my skill level. 
 
 You'll need to set your site up with the requisite headers to:
 
@@ -65,6 +69,9 @@ TODO
 * [X] Save all content in the correct Hugo JSON format
 * [X] Read all content from disk in correct microformats2 syntax
 * [X] Make it work with a more complete set of micropub features
+* [X] Reply-to
+* [X] Like-Of
+* [X] Repost-Of
 * [ ] Make a `setup.php` script to complete the required configuration settings.
 * [ ] Implement rsvp's, itineraries &c
 * [ ] Trigger sitegen on succesful operation.
@@ -76,18 +83,18 @@ Author
 Licences
 --------
 - **nanopub** is released under the [Free Public Licence 1.0.0](https://opensource.org/licenses/FPL-1.0.0). 
-- The included and unmodified [TwitterAPIExchange.php](https://github.com/J7mbo/twitter-api-php) is Copyright (c) 2013 James Mallison (j7mbo.co.uk) and under an MIT Licence.
 
 Acknowledgments
 ---------------
 * The IndieAuth validation sequence was taken from [Amy Guy's Minimal Micropub](https://rhiaro.co.uk/2015/04/minimum-viable-micropub), without which I couldn't have done this.
-* All at the #indieweb and #indieweb-dev IRC channels, who provided inspiration and support in equal measure.
+* All at the #indieweb and #indieweb-dev IRC channels, who provide inspiration and support in equal measure.
 * [@lyda](https://phrye.com)
 
 Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+1.2 | 2018-01-02 | Expansion to include `repost` & `like` posts.
 1.1 | 2017-11-14 | Rewrite of script to remove redundant and repetitive code.
 |||FIX: Added a getallheaders() replacement for web servers without apache functions
 1.0 | 2017-10-17 | First official release. 
