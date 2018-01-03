@@ -668,10 +668,16 @@ if (!empty($data)) {
                     $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
-            } else {        
-                $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
-                $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
-                $synText = $content;
+            } else { 
+                if ((!empty($frontmatter['repost_of'])) || (!empty($frontmatter['like_of']))) {
+                    $fn = "../content/like/" . $frontmattter['slug'] . ".md";
+                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $synText = $content;
+                } else {
+                    $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
+                    $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
+                    $synText = $content;
+                }
             }
 
             // Syndication Posting to different services
