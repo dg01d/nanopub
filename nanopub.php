@@ -669,8 +669,12 @@ if (!empty($data)) {
                     $synText = $frontmatter['title'];
                 }
             } else { 
-                if ((!empty($frontmatter['repost_of'])) || (!empty($frontmatter['like_of']))) {
-                    $fn = "../content/like/" . $frontmattter['slug'] . ".md";
+                if (!empty($frontmatter['repost_of'])) {
+                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
+                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $synText = $content;
+                } elseif (!empty($frontmatter['like_of'])) {
+                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } else {
@@ -725,19 +729,19 @@ if (!empty($data)) {
                         'status' => $TwText
                         );
 
-                    if (isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com") {
+                    if ((isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com")) {
                         $postfields['in_reply_to_status_id'] = tw_url_to_status_id($frontmatter['replytourl']);
                     }
-                    if (isset($frontmatter['like-of']) && $frontmatter['like-site'] == "twitter.com") {
+                    if ((isset($frontmatter['like_of'])) && ($frontmatter['like_site'] == "twitter.com")) {
                         $url = 'https://api.twitter.com/1.1/favorites/create.json';
+                        $postfields['id'] = tw_url_to_status_id($frontmatter['like_of']);
                         unset($postfields['status']);
-                        $postfields['id'] = tw_url_to_status_id($frontmatter['like-of']);
                     }                    
-                    if (isset($frontmatter['repost-of']) && $frontmatter['repost-site'] == "twitter.com") {
-                        $id = tw_url_to_status_id($frontmatter['repost-of']);
+                    if ((isset($frontmatter['repost_of'])) && ($frontmatter['repost_site'] == "twitter.com")) {
+                        $id = tw_url_to_status_id($frontmatter['repost_of']);
                         $url = 'https://api.twitter.com/1.1/statuses/retweet/' . $id . '.json';
-                        unset($postfields['status']);
                         $postfields['id'] = $id;
+                        unset($postfields['status']);
                     }
 
                     //Perform a POST request and echo the response 
@@ -748,9 +752,13 @@ if (!empty($data)) {
                             ->setPostfields($postfields)
                             ->performRequest()
                     );
-                    $str = $twarray->id_str;
-                    $nym = $twarray->user->screen_name;
-                    $frontmatter['twitlink'] = "https://twitter.com/" . $nym . "/status/" . $str;
+                    if ((isset($frontmatter['repost_of'])) || (isset($frontmatter['like_of']))) {
+                        $frontmatter['twitlink'] = isset($frontmatter['repost_of']) ? $frontmatter['repost_of'] : $frontmatter['like_of'];
+                    } else {
+                        $str = $twarray->id_str;
+                        $nym = $twarray->user->screen_name;
+                        $frontmatter['twitlink'] = "https://twitter.com/" . $nym . "/status/" . $str;
+                    }
                 }
             }
 
@@ -762,10 +770,10 @@ if (!empty($data)) {
             // Some way of triggering Site Generator needs to go in here.
 
             // ping! First one to micro.blog
-            if ($configs->pingMicro) {
-                $feedArray = array ("url" => $siteFeed);
-                post_to_api("https://micro.blog/ping", "null", "$feedArray");
-            }
+            //if ($configs->pingMicro) {
+            //    $feedArray = array ("url" => $siteFeed);
+            //    post_to_api("https://micro.blog/ping", "null", "$feedArray");
+            //}
             // ping! second one to switchboard
             $switchArray = array ("hub.mode" => "publish", "hub.url" => $siteUrl);
             post_to_api("https://switchboard.p3k.io/", "null", $switchArray);
