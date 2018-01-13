@@ -16,6 +16,9 @@ error_reporting(E_ALL);
  */
 
 require('vendor/autoload.php');
+require('helpers.php');
+use GuzzleHttp\Client;
+use Forecast\Forecast;
 
 $configs = include 'configs.php';
 $twAPIkey = $configs->twAPIkey;
@@ -234,41 +237,6 @@ function write_file($frontmatter, $content, $fn)
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
 
-/**
- * @since 1.2
- * Uses the XRay library to extract rich content from uris
- *
- * @param $url    The uri of the resource to be parsed
- * @param $site   The hostname of the resource to be parsed
- *                Could specify other services in configs.php
- * @return $url_parse Array of parsed data from resource
- */
-
-function xray_machine($url, $site)
-{
-    $xray = new p3k\XRay();
-
-    if ($site == "twitter.com") {
-        // If someone can give me a better way to get these values from external file...
-        $configs = include 'configs.php';
-        $twAPIkey = $configs->twAPIkey;
-        $twAPIsecret = $configs->twAPIsecret;
-        $twUserKey = $configs->twUserKey;
-        $twUserSecret = $configs->twUserSecret;
-        $url_parse = $xray->parse($url,
-        [
-                'timeout' => 30,
-                'twitter_api_key' => $twAPIkey,
-                'twitter_api_secret' => $twAPIsecret,
-                'twitter_access_token' => $twUserKey,
-                'twitter_access_token_secret' => $twUserSecret
-                ]
-        );
-    } else {
-        $url_parse = $xray->parse($url);
-    }
-    return $url_parse;
-}
 
 // This array pairs Hugo namespace with mf2 namespace.
 $mfArray = array(
@@ -628,6 +596,13 @@ if (!empty($data)) {
                 $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
                 unset($props['published']);
 
+                // First Attempt at Weather Data
+                $weather = getWeather();
+                $frontmatter['loc'] = $weather->loc;
+                $frontmatter['weather'] = $weather->weather;
+                $frontmatter['temp'] = $weather->temp;
+                $frontmatter['wicon'] = $weather->icon;
+
                 foreach ($props as $key => $value) {
                     $frontmatter[$key] = $value;
                 }
@@ -649,7 +624,6 @@ if (!empty($data)) {
                         $frontmatter['tags'] = $url_parse['data']['category'];
                     }
                 }
-
             }
 
             /*  First established the type of Post in nested order bookmark->article->note
@@ -714,8 +688,6 @@ if (!empty($data)) {
 
                     // Calls the external Twitter Library
 
-                    include_once 'TwitterAPIExchange.php';
-                    
                     $settings = array(
                         'consumer_key' => $twAPIkey,
                         'consumer_secret' => $twAPIsecret,

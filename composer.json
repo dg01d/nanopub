@@ -2,6 +2,8 @@
     "require": {
         "p3k/xray": "^1.4",
         "tantek/cassis": "^0.2.16895",
-        "j7mbo/twitter-api-php": "^1.0"
+        "j7mbo/twitter-api-php": "^1.0",
+        "guhelski/forecast-php": "^1.1",
+        "guzzlehttp/guzzle": "~6.0"
     }
 }
