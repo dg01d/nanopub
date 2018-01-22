@@ -471,18 +471,20 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['checkurl'] = $chkProperties['url']['0'];
                 }
-                unset($chkProperties['url']);
+                
                 $frontmatter['checkloc'] = $chkProperties['name']['0'];
-                unset($chkProperties['name']);
+                
                 if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
                     $frontmatter['checkadd'] = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
                 } else {
                     $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
-                unset($chkProperties['region'], $chkProperties['locality'], $chkProperties['street-address']);
+                
                 $frontmatter['latitude'] = $chkProperties['latitude']['0'];
                 $frontmatter['longitude'] = $chkProperties['longitude']['0'];
-                unset($chkProperties['latitude'], $chkProperties['longitude']);
+
+                // All properties are extracted, so the checkin can be deleted
+                unset($data['properties']['checkin']);
 
                 // Next bit creates a map and uploads it to media endpoint
 
@@ -608,21 +610,7 @@ if (!empty($data)) {
                 }
 
                 if (isset($url_parse)) {
-                    $frontmatter['xAuthor'] = isset($url_parse['data']['author']['name']) ? $url_parse['data']['author']['name'] : null;
-                    $frontmatter['xAuthorUrl'] = isset($url_parse['data']['author']['url']) ? $url_parse['data']['author']['url'] : null;
-                    $frontmatter['xPhoto'] = isset($url_parse['data']['author']['photo']) ? $url_parse['data']['author']['photo'] : null;
-                    if (isset($url_parse['data']['name'])) {
-                        $frontmatter['xContent'] = $url_parse['data']['name'];
-                    } elseif (isset($url_parse['data']['content']['html'])) {
-                        $frontmatter['xContent'] = $url_parse['data']['content']['html'];
-                    } else {
-                        $xContent = isset($url_parse['data']['content']['text']) ? $url_parse['data']['content']['text'] : null;
-                        $frontmatter['xContent'] = auto_link($xContent, false);
-                    }
-                    $frontmatter['xPublished'] = $url_parse['data']['published'];
-                    if (isset($url_parse['data']['category'])) {
-                        $frontmatter['tags'] = $url_parse['data']['category'];
-                    }
+                    $frontmatter = array_merge($frontmatter, $url_parse);
                 }
             }
 
