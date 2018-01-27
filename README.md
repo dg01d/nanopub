@@ -82,7 +82,7 @@ Author
 
 Licences
 --------
-- **nanopub** is released under the [Free Public Licence 1.0.0](https://opensource.org/licenses/FPL-1.0.0). 
+- **nanopub** is released under the [Zero Clause BSD Licence](https://opensource.org/licenses/FPL-1.0.0) (0BSD).
 
 Acknowledgments
 ---------------
@@ -94,6 +94,7 @@ Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+1.4 | 2018-01-26 | Extended for weather reporting, and rich-context likes/reposts
 1.2 | 2018-01-02 | Expansion to include `repost` & `like` posts.
 1.1 | 2017-11-14 | Rewrite of script to remove redundant and repetitive code.
 |||FIX: Added a getallheaders() replacement for web servers without apache functions

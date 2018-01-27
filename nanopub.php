@@ -2,23 +2,23 @@
 /**
  * nanopub - MicroPub support for Static Blog Engine
  *
- * @author  Daniel Goldsmith <dgold@ascraeus.org>
- * @license https://opensource.org/licenses/FPL-1.0.0
- * @link    https://github.com/dg01d/nanopub
+ * PHP version 7
+ *
+ * @author   Daniel Goldsmith <dgold@ascraeus.org>
+ * @license  https://opensource.org/licenses/FPL-1.0.0 0BSD
+ * @link     https://github.com/dg01d/nanopub
  * @category Micropub
- * @version 1.1
+ * @version  1.4
  */
 
-ini_set('display_errors', 'On');
-error_reporting(E_ALL);
+require 'vendor/autoload.php';
+require 'helpers.php';
+use GuzzleHttp\Client;
+use Forecast\Forecast;
+
 /** 
  * Load the settings from the configuration file 
  */
-
-require('vendor/autoload.php');
-require('helpers.php');
-use GuzzleHttp\Client;
-use Forecast\Forecast;
 
 $configs = include 'configs.php';
 $twAPIkey = $configs->twAPIkey;
@@ -102,7 +102,7 @@ function isAssoc($array)
  * 
  * This section largely adopted from rhiaro
  *
- * @param array $headers    All headers from an incoming connection request
+ * @param array $headers All headers from an incoming connection request
  *
  * @return boolean true if authorised
  */
@@ -154,7 +154,7 @@ function indieAuth($headers)
  *
  * @param $array      the array of Hugo key => value frontmatter elements
  * @param $keys       an associative array, pairing key values
- * @param $filter     boolean switch, if true, values not present in $keys are removed
+ * @param filter     boolean switch, if true, values not present in      $keys are removed
  *
  * @return array associative with keys in mf2 values
  */
@@ -203,8 +203,8 @@ function decode_input($textFile, $mfArray, $bool)
 /** 
  * Rewrites micropub-compliant structure as a Hugo file.
  *
- * @param $array      array of mf2-compliant fieldnames
- * @param $mfArray    array of Hugo <=> mf2 field equivalents
+ * @param  $array      array of mf2-compliant fieldnames
+ * @param  $mfArray    array of Hugo <=> mf2 field equivalents
  * @return array with Hugo fieldnames
  */
 function recode_output($array, $mfArray) 
@@ -232,7 +232,7 @@ function recode_output($array, $mfArray)
 function write_file($frontmatter, $content, $fn)
 {
     $frontmatter = array_filter($frontmatter);
-    $frontjson = json_encode($frontmatter, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK ) . "\n\n";
+    $frontjson = json_encode($frontmatter, 32 | 64 | 128 | 256) . "\n\n";
     file_put_contents($fn, $frontjson);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
@@ -266,7 +266,7 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+    echo json_encode($array, 32 | 64 | 128 | 256);
     exit;
 }
 
@@ -287,7 +287,7 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
+    echo json_encode($array, 32 | 64 | 128 | 256);
     exit;
 }
 
@@ -309,7 +309,11 @@ if (isset($_POST['h'])) {
     unset($_POST['h']);
     $data = [
         'type' => ['h-'.$h],
-        'properties' => array_map(function($a){ return is_array($a) ? $a : [$a]; }, $_POST)
+        'properties' => array_map(
+            function ($a) {
+                return is_array($a) ? $a : [$a]; 
+            }, $_POST
+        )
     ];
 } else {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -320,7 +324,7 @@ if (isset($_POST['h'])) {
 if (isset($_GET['q']) && $_GET['q'] == 'source') {
     // As this is requesting the source of a post,
     // seek indieAuth validation of the request
-    //if (indieAuth($headers)) {        
+    if (indieAuth($headers)) {        
         if (!empty($_GET['url'])) {
             $subj = urldecode($_GET['url']);
             $pattern = "#$siteUrl#";
@@ -337,7 +341,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
                     "properties" => $jsonArray
                     );
                 header('Content-Type: application/json');        
-                echo json_encode($respArray, JSON_PRETTY_PRINT);
+                echo json_encode($respArray, 128);
                 exit;
             } else {
                 header("HTTP/1.1 404 Not Found");
@@ -345,12 +349,16 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
                 exit;
             }
         }
-    //}
+    }
 }
 
 if (!empty($data)) {
     if (indieAuth($headers)) {
-        if (empty($data['properties']['content']['0']) && empty($data['properties']['like-of']['0']) && empty($data['properties']['repost-of']['0']) && empty($data['properties']['checkin']['0']['type']['0'])) {
+        if (empty($data['properties']['content']['0']) 
+            && empty($data['properties']['like-of']['0']) 
+            && empty($data['properties']['repost-of']['0']) 
+            && empty($data['properties']['checkin']['0']['type']['0'])
+        ) {
             // If this is a POST and there's no action listed, 400 exit
             if (empty($data['action'])) {
                 header("HTTP/1.1 400 Bad Request");
@@ -362,7 +370,8 @@ if (!empty($data)) {
                     $action = $data['action'];
                     $subj = urldecode($data['url']);
                 }
-                // This is based on _my_ content position. This converts URLs to local disk
+                // This is based on _my_ content position. This converts
+                // URLs to local disk
                 $pattern = "#".$siteUrl."#";
                 $repl = "";
                 $srcUri = preg_replace($pattern, $repl, $subj);
@@ -387,7 +396,8 @@ if (!empty($data)) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
                         
-                        // Now we perform the different update actions, Replace being first.
+                        // Now we perform the different update actions, 
+                        // Replace being first.
 
                         if (array_key_exists("replace", $data)) {
                             if (is_array($data['replace'])) {
@@ -447,7 +457,7 @@ if (!empty($data)) {
                         $fn = "../content/".$srcUri.".md";
                         write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
-                        echo json_encode($jsonArray, JSON_PRETTY_PRINT);
+                        echo json_encode($jsonArray, 128);
  
                     } else {
                         header("HTTP/1.1 404 Not Found");
@@ -495,7 +505,7 @@ if (!empty($data)) {
 
                 // Now to take out the checkins usual properties
 
-                $content = isset($data['properties']['content']['0']) ? $data['properties']['content']['0'] : null;
+                $content =  $data['properties']['content']['0'] ?? null;
                 unset($data['properties']['content']);
                 $frontmatter['checkin'] = $data['properties']['syndication']['0'];
                 unset($data['properties']['syndication']);
@@ -512,24 +522,25 @@ if (!empty($data)) {
                 unset($props['access_token']);
 
                 // Client has syndication powers!
-                $synds = isset($props['mp-syndicate-to']) ? $props['mp-syndicate-to'] : null;
+                $synds = $props['mp-syndicate-to'] ?? null;
                 unset($props['mp-syndicate-to']);
 
                 // Non-notes tend to have a name or title
-                $frontmatter['title'] = isset($props['name']['0']) ? $props['name']['0'] : null;
+                $frontmatter['title'] = $props['name']['0'] ?? null;
                 unset($props['name']);
 
                 // Bookmark-of 
-                $frontmatter['link'] = isset($props['bookmark-of']['0']) ? $props['bookmark-of']['0'] : null;
+                $frontmatter['link'] = $props['bookmark-of']['0'] ?? null;
                 unset($props['bookmark-of']);
 
                 // First attempt at 'like-of'
-                $frontmatter['like_of'] = isset($props['like-of']) ? $props['like-of'] : null;
+                $frontmatter['like_of'] = $props['like-of'] ?? null;
                 if (is_array($frontmatter['like_of'])) {
                     $frontmatter['like_of'] = $frontmatter['like_of']['0'];
                 }
-                $frontmatter['like_site'] = isset($frontmatter['like_of']) ? hostname_of_uri($frontmatter['like_of']) : null;
+
                 if (isset($frontmatter['like_of'])) {
+                    $frontmatter['like_site'] = hostname_of_uri($frontmatter['like_of']);
                     $url_parse = xray_machine($frontmatter['like_of'], $frontmatter['like_site']);
                 }
                 if ($frontmatter['like_site'] == 'twitter.com') {
@@ -538,12 +549,12 @@ if (!empty($data)) {
                 unset($props['like-of']);
 
                 // First attempt at 'repost-of'
-                $frontmatter['repost_of'] = isset($props['repost-of']) ? $props['repost-of'] : null;
+                $frontmatter['repost_of'] = $props['repost-of'] ?? null;
                 if (is_array($frontmatter['repost_of'])) {
                     $frontmatter['repost_of'] = $frontmatter['repost_of']['0'];
                 }
-                $frontmatter['repost_site'] = isset($frontmatter['repost_of']) ? hostname_of_uri($frontmatter['repost_of']) : null;
                 if (isset($frontmatter['repost_of'])) {
+                    $frontmatter['repost_site'] = hostname_of_uri($frontmatter['repost_of']);
                     $url_parse = xray_machine($frontmatter['repost_of'], $frontmatter['repost_site']);
                 }
                 if ($frontmatter['repost_site'] == 'twitter.com') {
@@ -556,8 +567,8 @@ if (!empty($data)) {
                 if (is_array($frontmatter['replytourl'])) {
                     $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
                 }
-                $frontmatter['replysite'] = isset($frontmatter['replytourl']) ? hostname_of_uri($frontmatter['replytourl']) : null;
                 if (isset($frontmatter['replytourl'])) {
+                    $frontmatter['replysite'] = hostname_of_uri($frontmatter['replytourl']);
                     $url_parse = xray_machine($frontmatter['replytourl'], $frontmatter['replysite']);
                 }
                 if ($frontmatter['replysite'] == 'twitter.com') {
@@ -576,38 +587,35 @@ if (!empty($data)) {
                 }
 
                 // Hugo does not store content in the frontmatter 
-                $content = isset($props['content']['0']) ? $props['content']['0'] : null;
+                $content = $props['content']['0'] ?? null;
                 unset($props['content']);
                 if (is_array($content)) {
                     $content = $content['html'];
                 }
-                $frontmatter['summary'] = isset($props['summary']['0']) ? $props['summary']['0'] : null; 
+                $frontmatter['summary'] = $props['summary']['0'] ?? null; 
                 unset($props['summary']);
        
                 // server allows clients to set category, treats as tags 
-                $frontmatter['tags'] = isset($props['category']) ? $props['category'] : null;
+                $frontmatter['tags'] = $props['category'] ?? null;
                 unset($props['category']);
 
                 // Specific logic here for OwnYourGram            
-                $frontmatter['photo'] = isset($props['photo']) ? $props['photo'] : null;
+                $frontmatter['photo'] = $props['photo'] ?? null;
                 unset($props['photo']);
                 
                 $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication']['0'])) ? $props['syndication']['0'] : null;
                 
                 // PESOS (like OYG / OYS) already has a datestamp
-                $frontmatter['date'] = isset($props['published']['0']) ? $props['published']['0'] : $cdate;
+                $frontmatter['date'] = $props['published']['0'] ?? $cdate;
                 unset($props['published']);
-
-                // First Attempt at Weather Data
-                $weather = getWeather();
-                $frontmatter['loc'] = $weather->loc;
-                $frontmatter['weather'] = $weather->weather;
-                $frontmatter['temp'] = $weather->temp;
-                $frontmatter['wicon'] = $weather->icon;
 
                 foreach ($props as $key => $value) {
                     $frontmatter[$key] = $value;
                 }
+
+                // First Attempt at Weather Data
+                $weather = getWeather();
+                $frontmatter = array_merge($frontmatter, $weather);
 
                 if (isset($url_parse)) {
                     $frontmatter = array_merge($frontmatter, $url_parse);
