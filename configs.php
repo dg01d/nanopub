@@ -3,7 +3,7 @@
 return (object) array(
 	// First some settings for the site
 	'siteUrl' => 'https://example.com/',			// the URL for your site - note trailing slash
-	'timezone' => 'America/Vancouver',				// http://php.net/manual/en/timezones.php
+	'timezone' => 'Europe/London',					// http://php.net/manual/en/timezones.php
 	'mediaPoint' => 'https://media.org/endpoint',	// Micropub Media Endpoint
 	
 	// Config Block for Twitter
@@ -24,7 +24,13 @@ return (object) array(
 	// Config for Weather
 	'compass' => 'https://private.tracker.com/api',
 	'compassKey' => 'PrivateAPIkey',
-	'forecastKey' => 'DarkSkyApiKey'
+	'forecastKey' => 'DarkSkyApiKey',
+	'defaultLat' => '51.5074',
+	'defaultLong' => '0.1278',
+	'defaultLoc' => 'London',
+
+	// Set Frontmatter Format -- json or yaml
+	'frontFormat' => 'json'
 );
 
 ?>

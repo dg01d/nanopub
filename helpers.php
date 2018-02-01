@@ -24,10 +24,9 @@ function getWeather()
     
     $response = $client->request('GET', 'last');
     $body = json_decode($response->getBody(), true);
-    $lat = $body['geocode']['latitude'];
-    $long = $body['geocode']['longitude'];
-    $loc = $body['geocode']['best_name'];
-    $time = $body['geocode']['localtime'];
+    $lat = $body['geocode']['latitude'] ?? $configs->defaultLat;
+    $long = $body['geocode']['longitude'] ?? $configs->defaultLong;
+    $loc = $body['geocode']['best_name'] ?? $configs->defaultLoc;
 
     $forecast = new Forecast($configs->forecastKey);
     $weather = $forecast->get(
@@ -44,7 +43,7 @@ function getWeather()
     $response['loc'] = $loc;
     $response['weather'] = $weather->currently->summary;
     $response['wicon'] = $weather->currently->icon;
-    $response['temp'] = round($weather->currently->temperature, 1);
+    $response['temp'] = (string) round($weather->currently->temperature, 1);
     return $response;
 }
 
@@ -112,6 +111,7 @@ function tagRead($url)
 
     $resp['site'] = $tags['og:site_name'] ?? $tags['twitter:site'];
 
+
     return $resp;
 }
 
@@ -129,14 +129,13 @@ function xray_machine($url, $site)
 {
     $xray = new p3k\XRay();
     if ($site == "twitter.com") {
-        $configs = parse_ini_file('config.ini');
-        $twAPIkey = $configs['twAPIkey'];
-        $twAPIsecret = $configs['twAPIsecret'];
-        $twUserKey = $configs['twUserKey'];
-        $twUserSecret = $configs['twUserSecret'];
-        $url_parse = $xray->parse(
-            $url,
-            [
+        $configs = include 'configs.php';
+        $twAPIkey = $configs->twAPIkey;
+        $twAPIsecret = $configs->twAPIsecret;
+        $twUserKey = $configs->twUserKey;
+        $twUserSecret = $configs->twUserSecret;
+        $url_parse = $xray->parse($url,
+        [
                 'timeout' => 30,
                 'twitter_api_key' => $twAPIkey,
                 'twitter_api_secret' => $twAPIsecret,
