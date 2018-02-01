@@ -1,7 +1,7 @@
 MicroPub support for Static Blog Engine
 =======================================
 
-This php script provides micropub support for the [Hugo Static Blog Engine](https://gohugo.io). Incoming posts are rewritten to a [JSON-header Hugo Format](http://gohugo.io/content/front-matter/) and saved to the user's content store.
+This php script provides micropub support for Static Site Generators. Incoming posts are rewritten to a suitable front-matter format and saved to the user's content store.
 
 Currently, the script will handle the following indieweb functions:-
 
@@ -63,6 +63,8 @@ Then you'll have to configure the options in `configs.php`
 - Mastodon Keys are more command-line driven, but relatively straightforward. See [the Mastodon API documentation](https://github.com/tootsuite/documentation/blob/master/Using-the-API/Testing-with-cURL.md)
 - As Mastodon is a federated network, you do need to _explicitly_ specify your Mastodon Instance.
 - If using the micro.blog function, you need to specify your site's rss/atom feed.
+- To use the weather data, you'll need to add access data for a location-tracking endpoint (like a self-hosted version of [Compass](https://github.com/aaronpk/Compass)) and a DarkSky [API Key](https://darksky.net/dev/docs)
+- Since 1.5, you can configure the frontmatter format for your posts. Currently the options are json, used in [Hugo](https://gohugo.io/content-management/front-matter/), or yaml, optionally used in Hugo, but required by other static engines such as [Jekyll](https://jekyllrb.com/docs/frontmatter/) or [Metalsmith](http://www.metalsmith.io). This could be used with other generators, such as [Pelican](docs.getpelican.com/en/stable/content.html), but the script would need to be changed to meet their specific format requirements.
 
 TODO
 ----
@@ -94,6 +96,7 @@ Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+1.5 | 2018-02-01 | Added configurable frontmatter, currently json or yaml
 1.4 | 2018-01-26 | Extended for weather reporting, and rich-context likes/reposts
 1.2 | 2018-01-02 | Expansion to include `repost` & `like` posts.
 1.1 | 2017-11-14 | Rewrite of script to remove redundant and repetitive code.

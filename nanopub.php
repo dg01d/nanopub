@@ -17,8 +17,8 @@ use GuzzleHttp\Client;
 use Forecast\Forecast;
 use Symfony\Component\Yaml\Yaml;
 
-/** 
- * Load the settings from the configuration file 
+/**
+ * Load the settings from the configuration file
  */
 
 $configs = include 'configs.php';
@@ -35,7 +35,7 @@ $cdate = date('c', time());
 
 $xray = new p3k\XRay();
 
-/** 
+/**
  * API call function. This could easily be used for any modern writable API
  *
  * @param $url    adressable url of the external API
@@ -44,11 +44,11 @@ $xray = new p3k\XRay();
  *
  * @return HTTP response from API
  */
-function post_to_api($url, $auth, $adata) 
+function post_to_api($url, $auth, $adata)
 {
     $fields = '';
-    foreach ($adata as $key => $value) { 
-        $fields .= $key . '=' . $value . '&'; 
+    foreach ($adata as $key => $value) {
+        $fields .= $key . '=' . $value . '&';
     }
     rtrim($fields, '&');
     $post = curl_init();
@@ -58,7 +58,7 @@ function post_to_api($url, $auth, $adata)
     curl_setopt($post, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $post, CURLOPT_HTTPHEADER, array(
-        'Content-Type: application/x-www-form-urlencoded', 
+        'Content-Type: application/x-www-form-urlencoded',
         'Authorization: '.$auth
         )
     );
@@ -149,9 +149,9 @@ function indieAuth($headers)
     }
 }
 
-/** 
+/**
  * Function to replace keys in an array with values from a different one.
- *   
+ *
  * Used here to rewrite keys from Hugo's format to microformats2 syntax.
  *
  * @param $array      the array of Hugo key => value frontmatter elements
@@ -184,7 +184,7 @@ function array_replace_keys($array, $keys, $filter)
  * @return array structured array from a text file with json frontmatter 
  */
 function decode_input($textFile, $mfArray, $bool) 
-{    
+{
     $topArray = explode("\n\n", $textFile);
     if (FRONT == "yaml") {
         $fileArray = Yaml::parse($topArray[0]);
@@ -257,7 +257,7 @@ $mfArray = array(
     "replyto" => "in-reply-to",
     "link" => "bookmark-of",
     "title" => "name",
-    "content" => "content"    
+    "content" => "content"
 );
 
 // GET Requests:- config, syndicate to & source
@@ -336,7 +336,7 @@ if (isset($_POST['h'])) {
 if (isset($_GET['q']) && $_GET['q'] == 'source') {
     // As this is requesting the source of a post,
     // seek indieAuth validation of the request
-    if (indieAuth($headers)) {        
+    if (indieAuth($headers)) {
         if (!empty($_GET['url'])) {
             $subj = urldecode($_GET['url']);
             $pattern = "#$siteUrl#";
@@ -347,12 +347,12 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
 
                 //send file for decoding
                 $jsonArray = decode_input($textFile, $mfArray, true);
-                
+
                 $respArray = array (
                     "type" => ["h-entry"],
                     "properties" => $jsonArray
                     );
-                header('Content-Type: application/json');        
+                header('Content-Type: application/json');
                 echo json_encode($respArray, 128);
                 exit;
             } else {
@@ -407,7 +407,7 @@ if (!empty($data)) {
                     if ($textFile = file_get_contents("../content/$srcUri.md")) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
-                        
+
                         // Now we perform the different update actions, 
                         // Replace being first.
 
@@ -423,7 +423,7 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
-                        
+
                         // Adding a value
 
                         if (array_key_exists("add", $data)) {
@@ -438,9 +438,9 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
-                        
+
                         // Delete a property based on key
-                        
+
                         if (array_key_exists("delete", $data)) {
                             if (is_array($data['delete'])) {
                                 if (isAssoc($data['delete'])) {
@@ -459,18 +459,18 @@ if (!empty($data)) {
                                 exit;
                             }
                         }
-                        
+
                         // Tasks completed, write back to original file
-                        
+
                         $jsonArray = recode_output($jsonArray, array_flip($mfArray));
 
-                        $content = $jsonArray['content'];     
+                        $content = $jsonArray['content'];
                         unset($jsonArray['content']);
                         $fn = "../content/".$srcUri.".md";
                         write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
- 
+
                     } else {
                         header("HTTP/1.1 404 Not Found");
                         echo "That url does not exist";
@@ -482,7 +482,7 @@ if (!empty($data)) {
             // Starts setting up some variables used throughout
 
             $frontmatter = [];
-            
+
             // Starting with checkins. These require a lot of metadata.
             // Structure is based on OwnYourSwarm's json payload
 
@@ -493,15 +493,15 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['checkurl'] = $chkProperties['url']['0'];
                 }
-                
+
                 $frontmatter['checkloc'] = $chkProperties['name']['0'];
-                
+
                 if ($chkProperties['locality']['0'] != $chkProperties['region']['0']) {
                     $frontmatter['checkadd'] = $chkProperties['locality']['0'] . ', ' . $chkProperties['region']['0'];
                 } else {
                     $frontmatter['checkadd'] = $chkProperties['street-address']['0'] . ', ' . $chkProperties['locality']['0'];
                 }
-                
+
                 $frontmatter['latitude'] = $chkProperties['latitude']['0'];
                 $frontmatter['longitude'] = $chkProperties['longitude']['0'];
 
@@ -575,7 +575,7 @@ if (!empty($data)) {
                 unset($props['repost-of']);
 
                 // indieweb 'reply-to'
-                $frontmatter['replytourl'] = $props['in-reply-to'] ?? null;               
+                $frontmatter['replytourl'] = $props['in-reply-to'] ?? null;
                 if (is_array($frontmatter['replytourl'])) {
                     $frontmatter['replytourl'] = $frontmatter['replytourl']['0'];
                 }
@@ -595,10 +595,10 @@ if (!empty($data)) {
                 } elseif (!empty($frontmatter['title']['0'])) {
                     $frontmatter['slug'] = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $frontmatter['title'])));
                 } else {
-                    $frontmatter['slug'] = $udate; 
+                    $frontmatter['slug'] = $udate;
                 }
 
-                // Hugo does not store content in the frontmatter 
+                // Hugo does not store content in the frontmatter
                 $content = $props['content']['0'] ?? null;
                 unset($props['content']);
                 if (is_array($content)) {
@@ -606,17 +606,17 @@ if (!empty($data)) {
                 }
                 $frontmatter['summary'] = $props['summary']['0'] ?? null; 
                 unset($props['summary']);
-       
+
                 // server allows clients to set category, treats as tags 
                 $frontmatter['tags'] = $props['category'] ?? null;
                 unset($props['category']);
 
-                // Specific logic here for OwnYourGram            
+                // Specific logic here for OwnYourGram
                 $frontmatter['photo'] = $props['photo'] ?? null;
                 unset($props['photo']);
-                
+
                 $frontmatter['instagram'] = (isset($props['syndication']) && in_array("https://www.instagram.com/p", $props['syndication']['0'])) ? $props['syndication']['0'] : null;
-                
+
                 // PESOS (like OYG / OYS) already has a datestamp
                 $frontmatter['date'] = $props['published']['0'] ?? $cdate;
                 unset($props['published']);
@@ -671,7 +671,7 @@ if (!empty($data)) {
             // first Mastodon, count limit 500
             if (!empty($synds)) {
                 if (in_array("https://".$configs->mastodonInstance, $synds)) {
-                     
+
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
                     $MastodonText = urlencode($MastodonText);
@@ -716,7 +716,7 @@ if (!empty($data)) {
                         $url = 'https://api.twitter.com/1.1/favorites/create.json';
                         $postfields['id'] = tw_url_to_status_id($frontmatter['like_of']);
                         unset($postfields['status']);
-                    }                    
+                    }
                     if ((isset($frontmatter['repost_of'])) && ($frontmatter['repost_site'] == "twitter.com")) {
                         $id = tw_url_to_status_id($frontmatter['repost_of']);
                         $url = 'https://api.twitter.com/1.1/statuses/retweet/' . $id . '.json';
@@ -724,9 +724,9 @@ if (!empty($data)) {
                         unset($postfields['status']);
                     }
 
-                    //Perform a POST request and echo the response 
-                    
-                    $twitter = new TwitterAPIExchange($settings);   
+                    //Perform a POST request and echo the response
+
+                    $twitter = new TwitterAPIExchange($settings);
                     $twarray = json_decode(
                         $twitter->buildOauth($url, $requestMethod)
                             ->setPostfields($postfields)
@@ -742,7 +742,7 @@ if (!empty($data)) {
                 }
             }
 
-            // All values obtained, we tidy up the array and convert to json 
+            // All values obtained, we tidy up the array and convert to json
             // Last part - writing the file to disk...
 
             write_file($frontmatter, $content, $fn);

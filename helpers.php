@@ -21,7 +21,7 @@ function getWeather()
             ]
         ]
     );
-    
+
     $response = $client->request('GET', 'last');
     $body = json_decode($response->getBody(), true);
     $lat = $body['geocode']['latitude'] ?? $configs->defaultLat;
@@ -83,7 +83,7 @@ function tagRead($url)
                 $key = trim($key);
                 $value = $match['3']["$i"];
                 $value = trim($value);
-                
+
                 $tags["$key"] = "$value"; $i++;
             } while ($i < $count);
         }
@@ -93,11 +93,11 @@ function tagRead($url)
     $resp['xAuthor'] = $tags['author'] ?? $tags['article:author'] ?? 
                     $tags['parsely-author'] ?? $tags['twitter:creator'] ?? 
                     $tags['og:site_name'] ?? hostname_of_uri($url);
-    
+
     $resp['xContent'] = $tags['title'] ?? $tags['og:title'] ?? 
                     $tags['twitter:title'] ?? $tags['parsely-title'] ?? 
                     $tags['sailthru.title'] ?? 'An Article';
-    
+
     $resp['xSummary'] = $tags['description'] ?? $tags['og:description'] ?? 
                     $tags['twitter:description'] ?? 
                     $tags['sailthru.description'] ??  
