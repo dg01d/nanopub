@@ -4,28 +4,29 @@ use GuzzleHttp\Client;
 use Forecast\Forecast;
 
 /**
- * 
  * Uses Compass and DarkSky to obtain weather values
  *
- * @return (object) $weather Weather data from resource
+ * @return (array) $weather Weather data from resource
  */
 
 function getWeather()
 {
     $configs = include 'configs.php';
-    $client = new Client([
+    $client = new Client(
+        [
             'base_uri' => $configs->compass,
             'query' => [
                     'token' => $configs->compassKey,
                     'geocode' => true
             ]
-    ]);
+        ]
+    );
+    
     $response = $client->request('GET', 'last');
     $body = json_decode($response->getBody(), true);
-    $lat = $body['geocode']['latitude'];
-    $long = $body['geocode']['longitude'];
-    $loc = $body['geocode']['best_name'];
-    $time = $body['geocode']['localtime'];
+    $lat = $body['geocode']['latitude'] ?? $configs->defaultLat;
+    $long = $body['geocode']['longitude'] ?? $configs->defaultLong;
+    $loc = $body['geocode']['best_name'] ?? $configs->defaultLoc;
 
     $forecast = new Forecast($configs->forecastKey);
     $weather = $forecast->get(
@@ -35,14 +36,15 @@ function getWeather()
         array(
             'units' => 'si',
             'exclude' => 'minutely,hourly,daily,alert,flags'
-        ));
+        )
+    );
 
     $response = [];
     $response['loc'] = $loc;
     $response['weather'] = $weather->currently->summary;
-    $response['icon'] = $weather->currently->icon;
+    $response['wicon'] = $weather->currently->icon;
     $response['temp'] = round($weather->currently->temperature, 1);
-    return (object) $response;
+    return $response;
 }
 
 /**
@@ -57,46 +59,57 @@ function getWeather()
 
 function tagRead($url) 
 {
+    date_default_timezone_set($configs->timezone);
+    $cdate = date('c', time());
+
     $tags = array();
     $site_html=  file_get_contents($url);
-    $meta_tags = get_meta_tags($url);
-    $tags['meta'] = $meta_tags;
-    $og_matches=null;
-    preg_match_all('~<\s*meta\s+property="(og:[^"]+)"\s+content="([^"]*)~i', $site_html,$og_matches);
-    $og_tags=array();
-    for($i=0;$i<count($og_matches[1]);$i++)
-    {
-        $og_tags[$og_matches[1][$i]]=$og_matches[2][$i];
-    }
-    $tags['og'] = $og_tags;
+    $site_html = str_replace('data-react-helmet="true"', '', $site_html);
+    preg_match_all('/<head>(.*?)<\/head>/si', $site_html, $head);
+    $data = $head['0']['0'];
 
-    if (isset($tags['meta']['author'])) {
-        $resp['author'] = $tags['meta']['author'];
-    } elseif (isset($tags['og']['og:site_name'])) {
-        $resp['author'] = $tags['og']['og:site_name'];
-    } else {
-        $resp['author'] = hostname_of_uri($url);
+    if ($data !== false ) {
+        preg_match_all(
+            '/<[\s]*meta[\s]*(name|property)="?' . '([^>"]*)"?[\s]*'
+                     . 'content="?([^>"]*)"?[\s]*[\/]?[\s]*>/si', 
+            $data, $match
+        );
+
+        $count = count($match['3']);
+        if ($count != 0) {
+            $i = 0; do {
+
+                $key = $match['2']["$i"];
+                $key = trim($key);
+                $value = $match['3']["$i"];
+                $value = trim($value);
+                
+                $tags["$key"] = "$value"; $i++;
+            } while ($i < $count);
+        }
+
     }
-    if (isset($tags['meta']['title'])) {
-        $resp['name'] = $tags['meta']['title'];
-    } elseif (isset($tags['og']['og:title'])) {
-        $resp['name'] = $tags['og']['og:title'];
-    } elseif (isset($tags['og']['og:description'])) {
-        $resp['name'] = $tags['og']['description'];
-    } elseif (isset($tags['meta']['description'])) {
-        $resp['name'] = $tags['meta']['description'];
-    } elseif (isset($tags['meta']['twitter:title'])) {
-        $resp['name'] = $tags['meta']['twitter:title'];
-    } else {
-        $resp['name'] = null;
-    }
-    if (isset($tags['og']['og:site_name'])) {
-        $resp['site'] = $tags['og']['og:site_name'];
-    } elseif (isset($tags['meta']['twitter:site'])) {
-        $resp['site'] = $tags['meta']['twitter:site'];
-    } else {
-        $resp['site'] = null;
-    }
+
+    $resp['xAuthor'] = $tags['author'] ?? $tags['article:author'] ?? 
+                    $tags['parsely-author'] ?? $tags['twitter:creator'] ?? 
+                    $tags['og:site_name'] ?? hostname_of_uri($url);
+    
+    $resp['xContent'] = $tags['title'] ?? $tags['og:title'] ?? 
+                    $tags['twitter:title'] ?? $tags['parsely-title'] ?? 
+                    $tags['sailthru.title'] ?? 'An Article';
+    
+    $resp['xSummary'] = $tags['description'] ?? $tags['og:description'] ?? 
+                    $tags['twitter:description'] ?? 
+                    $tags['sailthru.description'] ??  
+                    'About something interesting';
+
+    $strDate = $tags['article:published_time'] ?? $tags['datePublished'] ?? 
+            $tags['date'] ?? $tags['pubdate'] ?? $tags['sailthru.date'] ?? 
+            $tags['parsely-pub-date'] ?? $tags['DC.date.issued'] ?? $cdate;
+
+    $resp['xPublished'] = date("c", strtotime($strdate));
+
+    $resp['site'] = $tags['og:site_name'] ?? $tags['twitter:site'];
 
     return $resp;
 }
@@ -115,11 +128,11 @@ function xray_machine($url, $site)
 {
     $xray = new p3k\XRay();
     if ($site == "twitter.com") {
-    $configs = parse_ini_file('config.ini');
-    $twAPIkey = $configs['twAPIkey'];
-    $twAPIsecret = $configs['twAPIsecret'];
-    $twUserKey = $configs['twUserKey'];
-    $twUserSecret = $configs['twUserSecret'];
+        $configs = include 'configs.php';
+        $twAPIkey = $configs->twAPIkey;
+        $twAPIsecret = $configs->twAPIsecret;
+        $twUserKey = $configs->twUserKey;
+        $twUserSecret = $configs->twUserSecret;
         $url_parse = $xray->parse($url,
         [
                 'timeout' => 30,
@@ -133,22 +146,16 @@ function xray_machine($url, $site)
         $url_parse = $xray->parse($url);
     }
     if (empty($url_parse['data']['published'])) {
-        $tag_read = tagRead($url);
-        $result['xAuthor'] = $tag_read['author'];
-        $result['xContent'] = $tag_read['name'];
-        $result['xSite'] = $tag_read['site'];
+        $result = tagRead($url);
     } else {
         $result['xAuthor'] = $url_parse['data']['author']['name'];
         $result['xAuthorUrl'] = $url_parse['data']['author']['url'];
-        $result['xAuthorPhoto'] = $url_parse['data']['author']['photo'];
-        if (isset($url_parse['data']['name'])) {
-            $result['xContent'] = $url_parse['data']['name'];
-        } elseif (isset($url_parse['data']['content']['html'])) {
-            $result['xContent'] = $url_parse['data']['content']['html'];
-        } else {
-            $xContent = isset($url_parse['data']['content']['text']) ? $url_parse['data']['content']['text'] : null;
-            $result['xContent'] = auto_link($xContent, false);
-        }
+        $result['xPhoto'] = $url_parse['data']['author']['photo'];
+        $xContent = $url_parse['data']['content']['text'] ?? null;
+        $result['xContent'] = $url_parse['data']['name'] ?? 
+                            $url_parse['data']['content']['html'] ?? 
+                            auto_link($xContent, false) ?? 'A Post';
+        $result['xSummary'] = $url_parse['summary'];
         $result['xPublished'] = $url_parse['data']['published'];
         if (isset($url_parse['data']['category'])) {
             $result['tags'] = $url_parse['data']['category'];
