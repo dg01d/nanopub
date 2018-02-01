@@ -43,7 +43,7 @@ function getWeather()
     $response['loc'] = $loc;
     $response['weather'] = $weather->currently->summary;
     $response['wicon'] = $weather->currently->icon;
-    $response['temp'] = round($weather->currently->temperature, 1);
+    $response['temp'] = (string) round($weather->currently->temperature, 1);
     return $response;
 }
 

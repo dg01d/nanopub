@@ -15,6 +15,7 @@ require 'vendor/autoload.php';
 require 'helpers.php';
 use GuzzleHttp\Client;
 use Forecast\Forecast;
+use Symfony\Component\Yaml\Yaml;
 
 /** 
  * Load the settings from the configuration file 
@@ -28,6 +29,7 @@ $twUserSecret = $configs->twUserSecret;
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
 date_default_timezone_set($configs->timezone);
+define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
 $cdate = date('c', time());
 
@@ -184,13 +186,17 @@ function array_replace_keys($array, $keys, $filter)
 function decode_input($textFile, $mfArray, $bool) 
 {    
     $topArray = explode("\n\n", $textFile);
-    $jsonArray = json_decode($topArray[0], true);
-    $jsonArray["content"] = rtrim($topArray[1]);
+    if (FRONT == "yaml") {
+        $fileArray = Yaml::parse($topArray[0]);
+    } else {
+        $fileArray = json_decode($topArray[0], true);
+    }
+    $fileArray["content"] = rtrim($topArray[1]);
     $newArray = array();
     /*
      * All values must be arrays in mf2 syntax 
      */
-    foreach ($jsonArray as $key => $value) {
+    foreach ($fileArray as $key => $value) {
         if (!is_array($value)) {
             $value = [$value];
         }
@@ -232,8 +238,14 @@ function recode_output($array, $mfArray)
 function write_file($frontmatter, $content, $fn)
 {
     $frontmatter = array_filter($frontmatter);
-    $frontjson = json_encode($frontmatter, 32 | 64 | 128 | 256) . "\n\n";
-    file_put_contents($fn, $frontjson);
+    if (FRONT == "yaml") {
+        $yaml = Yaml::dump($frontmatter);
+        $frontFinal = "---\n" . $yaml . "---\n\n";
+    } else {
+        $frontFinal = json_encode($frontmatter, 32 | 64 | 128 | 256) . "\n\n";
+    }
+
+    file_put_contents($fn, $frontFinal);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
 

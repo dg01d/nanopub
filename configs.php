@@ -27,7 +27,10 @@ return (object) array(
 	'forecastKey' => 'DarkSkyApiKey',
 	'defaultLat' => '51.5074',
 	'defaultLong' => '0.1278',
-	'defaultLoc' => 'London'
+	'defaultLoc' => 'London',
+
+	// Set Frontmatter Format -- json or yaml
+	'frontFormat' => 'json'
 );
 
 ?>
