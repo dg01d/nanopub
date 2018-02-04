@@ -631,9 +631,10 @@ if (!empty($data)) {
                 }
 
                 // First Attempt at Weather Data
-                $weather = getWeather();
-                $frontmatter = array_merge($frontmatter, $weather);
-
+                if ($weatherToggle) {
+                    $weather = getWeather();
+                    $frontmatter = array_merge($frontmatter, $weather);
+                }
                 if (isset($url_parse)) {
                     $frontmatter = array_merge($frontmatter, $url_parse);
                 }
