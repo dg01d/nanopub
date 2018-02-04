@@ -64,7 +64,16 @@ Then you'll have to configure the options in `configs.php`
 - As Mastodon is a federated network, you do need to _explicitly_ specify your Mastodon Instance.
 - If using the micro.blog function, you need to specify your site's rss/atom feed.
 - To use the weather data, you'll need to add access data for a location-tracking endpoint (like a self-hosted version of [Compass](https://github.com/aaronpk/Compass)) and a DarkSky [API Key](https://darksky.net/dev/docs)
-- Since 1.5, you can configure the frontmatter format for your posts. Currently the options are json, used in [Hugo](https://gohugo.io/content-management/front-matter/), or yaml, optionally used in Hugo, but required by other static engines such as [Jekyll](https://jekyllrb.com/docs/frontmatter/) or [Metalsmith](http://www.metalsmith.io). This could be used with other generators, such as [Pelican](docs.getpelican.com/en/stable/content.html), but the script would need to be changed to meet their specific format requirements.
+- Since 1.5, you can configure the frontmatter format for your posts. Currently the options are json, used in [Hugo](https://gohugo.io/content-management/front-matter/), or yaml, optionally used in Hugo, but required by other static engines such as [Jekyll](https://jekyllrb.com/docs/frontmatter/) or [Metalsmith](http://www.metalsmith.io). This could be used with other generators, such as [Pelican](docs.getpelican.com/en/stable/content.html**, but the script would need to be changed to meet their specific format requirements.
+
+Client Notes
+------------
+**nanopub** expects data inputs in accordance with the current (May 2017) Micropub Spec, and does not gracefully handled deprecated formats. In particular:
+
+- `mp-slug`, not `slug` when setting the content of the slug property
+- `mp-syndicate-to` not `syndicate-to` when setting syndication targets for POSSE
+
+Any errors resulting from use of the deprecated formats are a matter for the client.
 
 TODO
 ----
