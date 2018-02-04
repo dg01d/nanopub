@@ -597,6 +597,10 @@ if (!empty($data)) {
                 } else {
                     $frontmatter['slug'] = $udate;
                 }
+                // Bug: Issue #8 / #7 probably linked
+                if (is_array($frontmatter['slug'])) {
+                    $frontmatter['slug'] = $frontmatter['slug']['0'];
+                }
 
                 // Hugo does not store content in the frontmatter
                 $content = $props['content']['0'] ?? null;
