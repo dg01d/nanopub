@@ -21,7 +21,8 @@ return (object) array(
 	'pingMicro' => True, 							// Set to False (boolean) if you don't use micro.blog
 	'siteFeed' => 'https://example.com/atom.xml',	// Set to your site's RSS/Atom Feed to notify micro.blog
 
-	// Config for Weather
+	// Config for Weather. If you do want weather feature, set to true 
+    'weatherToggle' => false,
 	'compass' => 'https://private.tracker.com/api',
 	'compassKey' => 'PrivateAPIkey',
 	'forecastKey' => 'DarkSkyApiKey',

@@ -28,6 +28,7 @@ $twUserKey = $configs->twUserKey;
 $twUserSecret = $configs->twUserSecret;
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
+$weatherToggle = $configs->weatherToggle;
 date_default_timezone_set($configs->timezone);
 define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
