@@ -100,7 +100,7 @@ function tagRead($url)
 
     $resp['xSummary'] = $tags['description'] ?? $tags['og:description'] ?? 
                     $tags['twitter:description'] ?? 
-                    $tags['sailthru.description'] ??  
+                    $tags['sailthru.description'] ?? 
                     'About something interesting';
 
     $strDate = $tags['article:published_time'] ?? $tags['datePublished'] ?? 
@@ -134,14 +134,15 @@ function xray_machine($url, $site)
         $twAPIsecret = $configs->twAPIsecret;
         $twUserKey = $configs->twUserKey;
         $twUserSecret = $configs->twUserSecret;
-        $url_parse = $xray->parse($url,
-        [
-                'timeout' => 30,
-                'twitter_api_key' => $twAPIkey,
-                'twitter_api_secret' => $twAPIsecret,
-                'twitter_access_token' => $twUserKey,
-                'twitter_access_token_secret' => $twUserSecret
-                ]
+        $url_parse = $xray->parse(
+            $url, 
+            [
+              'timeout' => 30,
+              'twitter_api_key' => $twAPIkey,
+              'twitter_api_secret' => $twAPIsecret,
+              'twitter_access_token' => $twUserKey,
+              'twitter_access_token_secret' => $twUserSecret
+            ]
         );
     } else {
         $url_parse = $xray->parse($url);
