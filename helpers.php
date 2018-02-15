@@ -107,7 +107,7 @@ function tagRead($url)
             $tags['date'] ?? $tags['pubdate'] ?? $tags['sailthru.date'] ?? 
             $tags['parsely-pub-date'] ?? $tags['DC.date.issued'] ?? $cdate;
 
-    $resp['xPublished'] = date("c", strtotime($strdate));
+    $resp['xPublished'] = date("c", strtotime($strDate));
 
     $resp['site'] = $tags['og:site_name'] ?? $tags['twitter:site'];
 
