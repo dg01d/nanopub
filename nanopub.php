@@ -8,7 +8,7 @@
  * @license  https://opensource.org/licenses/FPL-1.0.0 0BSD
  * @link     https://github.com/dg01d/nanopub
  * @category Micropub
- * @version  1.4
+ * @version  1.5
  */
 
 require 'vendor/autoload.php';
@@ -555,9 +555,9 @@ if (!empty($data)) {
                 if (isset($frontmatter['like_of'])) {
                     $frontmatter['like_site'] = hostname_of_uri($frontmatter['like_of']);
                     $url_parse = xray_machine($frontmatter['like_of'], $frontmatter['like_site']);
-                }
-                if ($frontmatter['like_site'] == 'twitter.com') {
-                    $synds['0'] = "https://twitter.com";
+                    if ($frontmatter['like_site'] == 'twitter.com') {
+                        $synds['0'] = "https://twitter.com";
+                    }
                 }
                 unset($props['like-of']);
 
@@ -569,9 +569,9 @@ if (!empty($data)) {
                 if (isset($frontmatter['repost_of'])) {
                     $frontmatter['repost_site'] = hostname_of_uri($frontmatter['repost_of']);
                     $url_parse = xray_machine($frontmatter['repost_of'], $frontmatter['repost_site']);
-                }
-                if ($frontmatter['repost_site'] == 'twitter.com') {
-                    $synds['0'] = "https://twitter.com";
+                    if ($frontmatter['repost_site'] == 'twitter.com') {
+                        $synds['0'] = "https://twitter.com";
+                    }
                 }
                 unset($props['repost-of']);
 
@@ -583,9 +583,9 @@ if (!empty($data)) {
                 if (isset($frontmatter['replytourl'])) {
                     $frontmatter['replysite'] = hostname_of_uri($frontmatter['replytourl']);
                     $url_parse = xray_machine($frontmatter['replytourl'], $frontmatter['replysite']);
-                }
-                if ($frontmatter['replysite'] == 'twitter.com') {
-                    $synds['0'] = "https://twitter.com";
+                    if ($frontmatter['replysite'] == 'twitter.com') {
+                        $synds['0'] = "https://twitter.com";
+                    }
                 }
                 unset($props['in-reply-to']);
 
