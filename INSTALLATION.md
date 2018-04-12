@@ -15,7 +15,7 @@ If composer complains about outdated dependencies, just ignore that, the depende
 
 ### From .zip
 
-Download the release .zip file from [here](https://example.com). Unzip, and place the contents in your site's output folder. 
+Download the release .zip file from [here](https://github.com/dg01d/nanopub/releases). Unzip, and place the contents in your site's output folder. 
 
 ### Configuration
 

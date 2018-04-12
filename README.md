@@ -37,34 +37,7 @@ The code is self-explanatory and documented, and can be adjusted easily to meet 
 Installation
 ------------
 
-Clone the contents into the `static` folder of your Hugo installation.
-
-Since the 1.2 release, nanopub requires the use of [Composer](https://getcomposer.org/). Getting it to do all the things I wanted it to do was getting _way_ beyond my skill level. 
-
-You'll need to set your site up with the requisite headers to:
-
-- Use [IndieAuth](https://indieauth.com/setup) as an identity/token service
-- Identify `nanopub.php` as your site's [micropub endpoint](https://indieweb.org/Micropub#How_to_implement)
-
-On my site, these headers are provided as follows:
-
-```html
-
-<!-- indieweb components  -->
-  <link rel="authorization_endpoint" href="https://indieauth.com/auth" />
-  <link rel="token_endpoint" href="https://tokens.indieauth.com/token" />
-  <link rel="micropub" href="https://ascraeus.org/nanopub.php" />
-
-```
-
-Then you'll have to configure the options in `configs.php`
-
-- Twitter Keys can be obtained using the [Create New App](https://apps.twitter.com/app/new) on twitter.
-- Mastodon Keys are more command-line driven, but relatively straightforward. See [the Mastodon API documentation](https://github.com/tootsuite/documentation/blob/master/Using-the-API/Testing-with-cURL.md)
-- As Mastodon is a federated network, you do need to _explicitly_ specify your Mastodon Instance.
-- If using the micro.blog function, you need to specify your site's rss/atom feed.
-- To use the weather data, you'll need to add access data for a location-tracking endpoint (like a self-hosted version of [Compass](https://github.com/aaronpk/Compass)) and a DarkSky [API Key](https://darksky.net/dev/docs)
-- Since 1.5, you can configure the frontmatter format for your posts. Currently the options are json, used in [Hugo](https://gohugo.io/content-management/front-matter/), or yaml, optionally used in Hugo, but required by other static engines such as [Jekyll](https://jekyllrb.com/docs/frontmatter/) or [Metalsmith](http://www.metalsmith.io). This could be used with other generators, such as [Pelican](docs.getpelican.com/en/stable/content.html), but the script would need to be changed to meet their specific format requirements.
+Please refer to the [Installation Notes](INSTALLATION.md)
 
 Client Notes
 ------------
@@ -105,6 +78,7 @@ Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+1.5.1| 2018-04-12 | Clarified Installation & packaged vendor files
 1.5 | 2018-02-01 | Added configurable frontmatter, currently json or yaml
 1.4 | 2018-01-26 | Extended for weather reporting, and rich-context likes/reposts
 1.2 | 2018-01-02 | Expansion to include `repost` & `like` posts.
