@@ -717,6 +717,7 @@ if (!empty($data)) {
 
                     if ((isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com")) {
                         $postfields['in_reply_to_status_id'] = tw_url_to_status_id($frontmatter['replytourl']);
+                        $postfields['auto_populate_reply_metadata'] = true;
                     }
                     if ((isset($frontmatter['like_of'])) && ($frontmatter['like_site'] == "twitter.com")) {
                         $url = 'https://api.twitter.com/1.1/favorites/create.json';

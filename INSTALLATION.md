@@ -2,6 +2,10 @@
 Installation
 ------------
 
+### System Requirements
+
+PHP 7.1+ is required, and the php environment requires php-curl, php-mbstring & php-ctype.
+
 ### From Source
 Clone the contents of this repository, then copy the `*.php` and the `composer.*` files into your sites **output** folder. If your Static Site Generator wipes the output folder on each run, then there will be some way to make these files be copied on each run -- Hugo, for example, uses the `static` folder.
 
