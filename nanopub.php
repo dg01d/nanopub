@@ -111,33 +111,35 @@ function isAssoc($array)
  */
 function indieAuth($headers) 
 {
+    global $configs;
     /**
      * Check token is valid 
      */
     $token = $headers['authorization'];
-    $ch = curl_init("https://tokens.indieauth.com/token");
+    $ch = curl_init($configs->tokenPoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $ch, CURLOPT_HTTPHEADER, Array(
         //"Content-Type: application/x-www-form-urlencoded",
+        "Accept: application/json",
         "Authorization: $token"
         )
     );
-    $response = Array();
-    parse_str(curl_exec($ch), $response);
+    $responseBody = strval(curl_exec($ch));
     curl_close($ch);
 
-    $me = $response['me'];
-    $iss = $response['issued_by'];
-    $client = $response['client_id'];
-    $scope = $response['scope'];
-    $scopes = explode(' ', $scope); 
+    $response = json_decode($responseBody, true, 2);
+    if (!is_array($response) || json_last_error() !== \JSON_ERROR_NONE) {
+        parse_str($responseBody, $response);
+    }
 
-    if (empty($response)) {
+    $scopes = isset($response['scope']) ? explode(' ', $response['scope']) : array();
+
+    if (empty($response) || isset($response['error'])) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
-    } elseif ($me != $GLOBALS["siteUrl"]) {
+    } elseif (!isset($response['me']) || $response['me'] !== $configs->siteUrl) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks valid authentication credentials';
         exit;
