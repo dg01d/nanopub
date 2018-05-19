@@ -248,6 +248,11 @@ function write_file($frontmatter, $content, $fn)
         $frontFinal = json_encode($frontmatter, $jsonFormat) . "\n\n";
     }
 
+    $dir = pathinfo($fn, PATHINFO_DIRNAME);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
+
     file_put_contents($fn, $frontFinal);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
@@ -350,7 +355,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
             $repl = "";
             $srcUri = preg_replace($pattern, $repl, $subj);
             $srcUri = rtrim($srcUri, "/");
-            if ($textFile = file_get_contents("../content/$srcUri.md")) {
+            if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
 
                 //send file for decoding
                 $jsonArray = decode_input($textFile, $mfArray, true);
@@ -397,13 +402,16 @@ if (!empty($data)) {
                 $srcUri = rtrim($srcUri, "/");
                 // First delete if asked to
                 if ($action == "delete") {
-                    rename("../content/$srcUri.md", "../trash/$srcUri.md");
+                    if (!is_dir($configs->trashFolder)) {
+                        mkdir($configs->trashFolder, 0777, true);
+                    }
+                    rename($configs->storageFolder . "/$srcUri.md", $configs->trashFolder . "/$srcUri.md");
                     header("HTTP/1.1 204 No Content");
                     exit;
                 }
                 // then an undelete
                 if ($action == "undelete") {
-                    rename("../trash/$srcUri.md", "../content/$srcUri.md");
+                    rename($configs->trashFolder . "/$srcUri.md", $configs->storageFolder . "/$srcUri.md");
                     header("HTTP/1.1 201 Created");
                     header("Location: ".$siteUrl.$srcUri);
                     exit;
@@ -411,7 +419,7 @@ if (!empty($data)) {
                 // Update can be one of a number of different actions
                 if ($action == "update") {
                     // Updating, so need to read the existing file
-                    if ($textFile = file_get_contents("../content/$srcUri.md")) {
+                    if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
 
@@ -473,7 +481,7 @@ if (!empty($data)) {
 
                         $content = $jsonArray['content'];
                         unset($jsonArray['content']);
-                        $fn = "../content/".$srcUri.".md";
+                        $fn = $configs->storageFolder . "/$srcUri.md";
                         write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
@@ -654,25 +662,25 @@ if (!empty($data)) {
             if (!empty($frontmatter['title'])) { 
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
-                    $fn = "../content/link/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/link/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = "../content/article/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/article/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
-                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
-                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } else {
-                    $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
                     $synText = $content;
                 }

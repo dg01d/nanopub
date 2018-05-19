@@ -6,6 +6,8 @@ return (object) array(
 	'timezone' => 'Europe/London',							// http://php.net/manual/en/timezones.php
 	'mediaPoint' => 'https://media.org/endpoint',			// Micropub Media Endpoint
 	'tokenPoint' => 'https://tokens.indieauth.com/token',	// IndieAuth Token Endpoint
+	'storageFolder' => '../content',						// the folder to store the posts in
+	'trashFolder' => '../trash',							// the folder to move removed posts into
 	
 	// Config Block for Twitter
 	'twitterName' => 'poopyCakes',							// your twitter account name, don't use the @
