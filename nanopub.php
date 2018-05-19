@@ -245,13 +245,17 @@ function write_file($frontmatter, $content, $fn)
         $yaml = Yaml::dump($frontmatter);
         $frontFinal = "---\n" . $yaml . "---\n\n";
     } else {
-        $frontFinal = json_encode($frontmatter, 32 | 64 | 128 | 256) . "\n\n";
+        $frontFinal = json_encode($frontmatter, $jsonFormat) . "\n\n";
     }
 
     file_put_contents($fn, $frontFinal);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
 
+// This variable is used for the json_encode() functions later in the script.
+// You can change these depending on your needs.
+
+$jsonFormat = JSON_PRETTY_PRINT | JSON_NUMBER_CHECK | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
 // This array pairs Hugo namespace with mf2 namespace.
 $mfArray = array(
@@ -281,7 +285,7 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, 32 | 64 | 128 | 256);
+    echo json_encode($array, $jsonFormat);
     exit;
 }
 
@@ -302,7 +306,7 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, 32 | 64 | 128 | 256);
+    echo json_encode($array, $jsonFormat);
     exit;
 }
 
