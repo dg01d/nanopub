@@ -39,9 +39,9 @@ $xray = new p3k\XRay();
 /**
  * API call function. This could easily be used for any modern writable API
  *
- * @param $url    adressable url of the external API
- * @param $auth   authorisation header for the API
- * @param $adata  php array of the data to be sent
+ * @param string $url   adressable url of the external API
+ * @param string $auth  authorisation header for the API
+ * @param array $adata  php array of the data to be sent
  *
  * @return HTTP response from API
  */
@@ -69,8 +69,8 @@ function post_to_api($url, $auth, $adata)
 }
 
 /**
- * getallheaders() replacement for nginx
- * 
+ * Replaces getallheaders() for nginx
+ *
  * Replaces the getallheaders function which relies on Apache
  *
  * @return array incoming headers from _POST
@@ -89,31 +89,33 @@ if (!function_exists('getallheaders')) {
     }
 }
 
-/** 
+/**
  * Test for associative arrays
+ *
+ * @param array $array to be tested
  *
  * @return boolean true if associative
  */
 function isAssoc($array)
 {
-    $array = array_keys($array); 
+    $array = array_keys($array);
     return ($array !== array_keys($array));
 }
 
-/** 
+/**
  * Validate incoming requests, using IndieAuth
- * 
+ *
  * This section largely adopted from rhiaro
  *
  * @param array $headers All headers from an incoming connection request
  *
  * @return boolean true if authorised
  */
-function indieAuth($headers) 
+function indieAuth($headers)
 {
     global $configs;
     /**
-     * Check token is valid 
+     * Check token is valid
      */
     $token = $headers['authorization'];
     $ch = curl_init($configs->tokenPoint);
@@ -157,9 +159,9 @@ function indieAuth($headers)
  *
  * Used here to rewrite keys from Hugo's format to microformats2 syntax.
  *
- * @param $array      the array of Hugo key => value frontmatter elements
- * @param $keys       an associative array, pairing key values
- * @param filter     boolean switch, if true, values not present in      $keys are removed
+ * @param array $array      the array of Hugo key => value frontmatter elements
+ * @param array $keys       an associative array, pairing key values
+ * @param boolean $filter   boolean switch, if true, values not present in $keys are removed
  *
  * @return array associative with keys in mf2 values
  */
@@ -176,17 +178,17 @@ function array_replace_keys($array, $keys, $filter)
     return $newArray;
 }
 
-/** 
+/**
  * Reads existing Hugo files and rearranges them to the
  * format required by the micropub specification.
  *
- * @param $textFile   the Hugo content file, loaded with json frontmatter
- * @param $mfArray    Array of Hugo <=> mf2 field equivalents
- * @param $bool       boolean to determine if non-equivalent keys are stripped
+ * @param string $textFile the content file, with json/yaml frontmatter
+ * @param array $mfArray   Array of SSG <=> mf2 field equivalents
+ * @param boolean $bool    boolean to determine if non-equivalent keys are stripped
  *
- * @return array structured array from a text file with json frontmatter 
+ * @return array structured array from a text file with json frontmatter
  */
-function decode_input($textFile, $mfArray, $bool) 
+function decode_input($textFile, $mfArray, $bool)
 {
     $topArray = explode("\n\n", $textFile);
     if (FRONT == "yaml") {
@@ -197,7 +199,7 @@ function decode_input($textFile, $mfArray, $bool)
     $fileArray["content"] = rtrim($topArray[1]);
     $newArray = array();
     /*
-     * All values must be arrays in mf2 syntax 
+     * All values must be arrays in mf2 syntax
      */
     foreach ($fileArray as $key => $value) {
         if (!is_array($value)) {
@@ -209,12 +211,12 @@ function decode_input($textFile, $mfArray, $bool)
     return $newArray;
 }
 
-/** 
+/**
  * Rewrites micropub-compliant structure as a Hugo file.
  *
- * @param  $array      array of mf2-compliant fieldnames
- * @param  $mfArray    array of Hugo <=> mf2 field equivalents
- * @return array with Hugo fieldnames
+ * @param  array $array      array of mf2-compliant fieldnames
+ * @param  array $mfArray    array of SSG <=> mf2 field equivalents
+ * @return array $postarray  with SSG fieldnames
  */
 function recode_output($array, $mfArray) 
 {
@@ -232,11 +234,13 @@ function recode_output($array, $mfArray)
 }
 
 /**
- * @since 1.1
  * Writes dataset to file.
+ * @since 1.1
  * Put here to allow extension for different post-types in future.
  *
- * @return boolean 
+ * @param array $frontmatter Frontmatter for the file (e.g. title, slug)
+ * @param string $content    The content of the file/post/reply
+ * @param string $fn         The filename of the file to be written
  */
 function write_file($frontmatter, $content, $fn)
 {
@@ -335,7 +339,7 @@ if (isset($_POST['h'])) {
         'type' => ['h-'.$h],
         'properties' => array_map(
             function ($a) {
-                return is_array($a) ? $a : [$a]; 
+                return is_array($a) ? $a : [$a];
             }, $_POST
         )
     ];
@@ -423,7 +427,7 @@ if (!empty($data)) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
 
-                        // Now we perform the different update actions, 
+                        // Now we perform the different update actions,
                         // Replace being first.
 
                         if (array_key_exists("replace", $data)) {
@@ -493,7 +497,7 @@ if (!empty($data)) {
                 }
             }
         } else {
-            // This handles new publications. 
+            // This handles new publications.
             // Starts setting up some variables used throughout
 
             $frontmatter = [];
@@ -656,10 +660,10 @@ if (!empty($data)) {
 
             /*  First established the type of Post in nested order bookmark->article->note
              *  Note that this is hardcoded to my site structure and post-kinds. Obviously,
-             *  $fn will need to be changed for different structures/kinds 
+             *  $fn will need to be changed for different structures/kinds
              */
 
-            if (!empty($frontmatter['title'])) { 
+            if (!empty($frontmatter['title'])) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
                     $fn = $configs->storageFolder . "/link/" . $frontmatter['slug'] . ".md";
