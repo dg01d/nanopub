@@ -77,7 +77,7 @@ Then edit the included `configs.php` file to enable various features. The full f
 
 You will need to set your site up with the requisite micropub-enabling headers to:
 
-- Use [IndieAuth](https://indieauth.com/setup) as an identity/token service
+- Use an identity/token service for user authentication (the configs file uses [IndieAuth](https://indieauth.com/setup))
 - Identify `nanopub.php` as your site's [micropub endpoint](https://indieweb.org/Micropub#How_to_implement)
 
 On my site, these headers are provided as follows:
@@ -93,7 +93,7 @@ On my site, these headers are provided as follows:
 
 ### Data Structure
 
-At the moment, the location of the data store - where the script places your posts - is hardcoded, this is something I am working on changing. On my site, I have the data store in a folder under the parent folder of my site's output folder. The structure of this folder is hardcoded as follows:-
+The location of the data store - where the script places your posts - is set with the `storageFolder` and `trashFolder` config options. This can be set relative to the working directory, or to an absolute path. On my site, I have configured the data store as follows:-
 
 ```
 /srv
