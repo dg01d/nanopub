@@ -39,9 +39,9 @@ $xray = new p3k\XRay();
 /**
  * API call function. This could easily be used for any modern writable API
  *
- * @param $url    adressable url of the external API
- * @param $auth   authorisation header for the API
- * @param $adata  php array of the data to be sent
+ * @param string $url   adressable url of the external API
+ * @param string $auth  authorisation header for the API
+ * @param array $adata  php array of the data to be sent
  *
  * @return HTTP response from API
  */
@@ -69,8 +69,8 @@ function post_to_api($url, $auth, $adata)
 }
 
 /**
- * getallheaders() replacement for nginx
- * 
+ * Replaces getallheaders() for nginx
+ *
  * Replaces the getallheaders function which relies on Apache
  *
  * @return array incoming headers from _POST
@@ -89,55 +89,59 @@ if (!function_exists('getallheaders')) {
     }
 }
 
-/** 
+/**
  * Test for associative arrays
+ *
+ * @param array $array to be tested
  *
  * @return boolean true if associative
  */
 function isAssoc($array)
 {
-    $array = array_keys($array); 
+    $array = array_keys($array);
     return ($array !== array_keys($array));
 }
 
-/** 
+/**
  * Validate incoming requests, using IndieAuth
- * 
+ *
  * This section largely adopted from rhiaro
  *
  * @param array $headers All headers from an incoming connection request
  *
  * @return boolean true if authorised
  */
-function indieAuth($headers) 
+function indieAuth($headers)
 {
+    global $configs;
     /**
-     * Check token is valid 
+     * Check token is valid
      */
     $token = $headers['authorization'];
-    $ch = curl_init("https://tokens.indieauth.com/token");
+    $ch = curl_init($configs->tokenPoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $ch, CURLOPT_HTTPHEADER, Array(
         //"Content-Type: application/x-www-form-urlencoded",
+        "Accept: application/json",
         "Authorization: $token"
         )
     );
-    $response = Array();
-    parse_str(curl_exec($ch), $response);
+    $responseBody = strval(curl_exec($ch));
     curl_close($ch);
 
-    $me = $response['me'];
-    $iss = $response['issued_by'];
-    $client = $response['client_id'];
-    $scope = $response['scope'];
-    $scopes = explode(' ', $scope); 
+    $response = json_decode($responseBody, true, 2);
+    if (!is_array($response) || json_last_error() !== \JSON_ERROR_NONE) {
+        parse_str($responseBody, $response);
+    }
 
-    if (empty($response)) {
+    $scopes = isset($response['scope']) ? explode(' ', $response['scope']) : array();
+
+    if (empty($response) || isset($response['error'])) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
-    } elseif ($me != $GLOBALS["siteUrl"]) {
+    } elseif (!isset($response['me']) || $response['me'] !== $configs->siteUrl) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks valid authentication credentials';
         exit;
@@ -155,9 +159,9 @@ function indieAuth($headers)
  *
  * Used here to rewrite keys from Hugo's format to microformats2 syntax.
  *
- * @param $array      the array of Hugo key => value frontmatter elements
- * @param $keys       an associative array, pairing key values
- * @param filter     boolean switch, if true, values not present in      $keys are removed
+ * @param array $array      the array of Hugo key => value frontmatter elements
+ * @param array $keys       an associative array, pairing key values
+ * @param boolean $filter   boolean switch, if true, values not present in $keys are removed
  *
  * @return array associative with keys in mf2 values
  */
@@ -174,17 +178,17 @@ function array_replace_keys($array, $keys, $filter)
     return $newArray;
 }
 
-/** 
+/**
  * Reads existing Hugo files and rearranges them to the
  * format required by the micropub specification.
  *
- * @param $textFile   the Hugo content file, loaded with json frontmatter
- * @param $mfArray    Array of Hugo <=> mf2 field equivalents
- * @param $bool       boolean to determine if non-equivalent keys are stripped
+ * @param string $textFile the content file, with json/yaml frontmatter
+ * @param array $mfArray   Array of SSG <=> mf2 field equivalents
+ * @param boolean $bool    boolean to determine if non-equivalent keys are stripped
  *
- * @return array structured array from a text file with json frontmatter 
+ * @return array structured array from a text file with json frontmatter
  */
-function decode_input($textFile, $mfArray, $bool) 
+function decode_input($textFile, $mfArray, $bool)
 {
     $topArray = explode("\n\n", $textFile);
     if (FRONT == "yaml") {
@@ -195,7 +199,7 @@ function decode_input($textFile, $mfArray, $bool)
     $fileArray["content"] = rtrim($topArray[1]);
     $newArray = array();
     /*
-     * All values must be arrays in mf2 syntax 
+     * All values must be arrays in mf2 syntax
      */
     foreach ($fileArray as $key => $value) {
         if (!is_array($value)) {
@@ -207,12 +211,12 @@ function decode_input($textFile, $mfArray, $bool)
     return $newArray;
 }
 
-/** 
+/**
  * Rewrites micropub-compliant structure as a Hugo file.
  *
- * @param  $array      array of mf2-compliant fieldnames
- * @param  $mfArray    array of Hugo <=> mf2 field equivalents
- * @return array with Hugo fieldnames
+ * @param  array $array      array of mf2-compliant fieldnames
+ * @param  array $mfArray    array of SSG <=> mf2 field equivalents
+ * @return array $postarray  with SSG fieldnames
  */
 function recode_output($array, $mfArray) 
 {
@@ -230,11 +234,13 @@ function recode_output($array, $mfArray)
 }
 
 /**
- * @since 1.1
  * Writes dataset to file.
+ * @since 1.1
  * Put here to allow extension for different post-types in future.
  *
- * @return boolean 
+ * @param array $frontmatter Frontmatter for the file (e.g. title, slug)
+ * @param string $content    The content of the file/post/reply
+ * @param string $fn         The filename of the file to be written
  */
 function write_file($frontmatter, $content, $fn)
 {
@@ -243,13 +249,22 @@ function write_file($frontmatter, $content, $fn)
         $yaml = Yaml::dump($frontmatter);
         $frontFinal = "---\n" . $yaml . "---\n\n";
     } else {
-        $frontFinal = json_encode($frontmatter, 32 | 64 | 128 | 256) . "\n\n";
+        $frontFinal = json_encode($frontmatter, $jsonFormat) . "\n\n";
+    }
+
+    $dir = pathinfo($fn, PATHINFO_DIRNAME);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
     }
 
     file_put_contents($fn, $frontFinal);
     file_put_contents($fn, $content, FILE_APPEND | LOCK_EX);
 }
 
+// This variable is used for the json_encode() functions later in the script.
+// You can change these depending on your needs.
+
+$jsonFormat = JSON_PRETTY_PRINT | JSON_NUMBER_CHECK | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
 // This array pairs Hugo namespace with mf2 namespace.
 $mfArray = array(
@@ -279,7 +294,7 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, 32 | 64 | 128 | 256);
+    echo json_encode($array, $jsonFormat);
     exit;
 }
 
@@ -300,7 +315,7 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
     );
 
     header('Content-Type: application/json');
-    echo json_encode($array, 32 | 64 | 128 | 256);
+    echo json_encode($array, $jsonFormat);
     exit;
 }
 
@@ -324,7 +339,7 @@ if (isset($_POST['h'])) {
         'type' => ['h-'.$h],
         'properties' => array_map(
             function ($a) {
-                return is_array($a) ? $a : [$a]; 
+                return is_array($a) ? $a : [$a];
             }, $_POST
         )
     ];
@@ -344,7 +359,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
             $repl = "";
             $srcUri = preg_replace($pattern, $repl, $subj);
             $srcUri = rtrim($srcUri, "/");
-            if ($textFile = file_get_contents("../content/$srcUri.md")) {
+            if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
 
                 //send file for decoding
                 $jsonArray = decode_input($textFile, $mfArray, true);
@@ -391,13 +406,16 @@ if (!empty($data)) {
                 $srcUri = rtrim($srcUri, "/");
                 // First delete if asked to
                 if ($action == "delete") {
-                    rename("../content/$srcUri.md", "../trash/$srcUri.md");
+                    if (!is_dir($configs->trashFolder)) {
+                        mkdir($configs->trashFolder, 0777, true);
+                    }
+                    rename($configs->storageFolder . "/$srcUri.md", $configs->trashFolder . "/$srcUri.md");
                     header("HTTP/1.1 204 No Content");
                     exit;
                 }
                 // then an undelete
                 if ($action == "undelete") {
-                    rename("../trash/$srcUri.md", "../content/$srcUri.md");
+                    rename($configs->trashFolder . "/$srcUri.md", $configs->storageFolder . "/$srcUri.md");
                     header("HTTP/1.1 201 Created");
                     header("Location: ".$siteUrl.$srcUri);
                     exit;
@@ -405,11 +423,11 @@ if (!empty($data)) {
                 // Update can be one of a number of different actions
                 if ($action == "update") {
                     // Updating, so need to read the existing file
-                    if ($textFile = file_get_contents("../content/$srcUri.md")) {
+                    if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
 
-                        // Now we perform the different update actions, 
+                        // Now we perform the different update actions,
                         // Replace being first.
 
                         if (array_key_exists("replace", $data)) {
@@ -467,7 +485,7 @@ if (!empty($data)) {
 
                         $content = $jsonArray['content'];
                         unset($jsonArray['content']);
-                        $fn = "../content/".$srcUri.".md";
+                        $fn = $configs->storageFolder . "/$srcUri.md";
                         write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
@@ -479,7 +497,7 @@ if (!empty($data)) {
                 }
             }
         } else {
-            // This handles new publications. 
+            // This handles new publications.
             // Starts setting up some variables used throughout
 
             $frontmatter = [];
@@ -642,31 +660,31 @@ if (!empty($data)) {
 
             /*  First established the type of Post in nested order bookmark->article->note
              *  Note that this is hardcoded to my site structure and post-kinds. Obviously,
-             *  $fn will need to be changed for different structures/kinds 
+             *  $fn will need to be changed for different structures/kinds
              */
 
-            if (!empty($frontmatter['title'])) { 
+            if (!empty($frontmatter['title'])) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
-                    $fn = "../content/link/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/link/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = "../content/article/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/article/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
-                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
-                    $fn = "../content/like/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } else {
-                    $fn = "../content/micro/" . $frontmatter['slug'] . ".md";
+                    $fn = $configs->storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
                     $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
                     $synText = $content;
                 }
@@ -717,6 +735,7 @@ if (!empty($data)) {
 
                     if ((isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com")) {
                         $postfields['in_reply_to_status_id'] = tw_url_to_status_id($frontmatter['replytourl']);
+                        $postfields['auto_populate_reply_metadata'] = true;
                     }
                     if ((isset($frontmatter['like_of'])) && ($frontmatter['like_site'] == "twitter.com")) {
                         $url = 'https://api.twitter.com/1.1/favorites/create.json';
