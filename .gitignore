@@ -3,3 +3,4 @@ configs.php
 # composer
 composer-setup.php
 composer.phar
+vendor/
