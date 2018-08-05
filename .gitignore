@@ -1,5 +1,5 @@
 configs.php
 
 # composer
-composer_setup.php
+composer-setup.php
 composer.phar
