@@ -22,18 +22,30 @@ use Symfony\Component\Yaml\Yaml;
  */
 
 $configs = include 'configs.php';
+
+$siteUrl = $configs->siteUrl;
+$siteFeed = $configs->siteFeed;
+
+$storageFolder = $configs->storageFolder;
+$trashFolder = $configs->trashFolder;
+
+$mediaPoint = $configs->mediaPoint;
+
 $twAPIkey = $configs->twAPIkey;
 $twAPIsecret = $configs->twAPIsecret;
 $twUserKey = $configs->twUserKey;
 $twUserSecret = $configs->twUserSecret;
-$siteUrl = $configs->siteUrl;
-$siteFeed = $configs->siteFeed;
+
+$mastodonInstance = $configs->mastodonInstance;
+$mastodonToken = $configs->mastodonToken;
+
 $weatherToggle = $configs->weatherToggle;
+
 date_default_timezone_set($configs->timezone);
 define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
 $cdate = date('c', time());
-
+$tokenPoint = $configs->tokenPoint
 $xray = new p3k\XRay();
 
 /**
@@ -118,7 +130,7 @@ function indieAuth($headers)
      * Check token is valid
      */
     $token = $headers['authorization'];
-    $ch = curl_init($configs->tokenPoint);
+    $ch = curl_init($tokenPoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $ch, CURLOPT_HTTPHEADER, Array(
@@ -141,7 +153,7 @@ function indieAuth($headers)
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks authentication credentials';
         exit;
-    } elseif (!isset($response['me']) || $response['me'] !== $configs->siteUrl) {
+    } elseif (!isset($response['me']) || $response['me'] !== $siteUrl) {
         header("HTTP/1.1 401 Unauthorized");
         echo 'The request lacks valid authentication credentials';
         exit;
@@ -287,7 +299,7 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
                 "name" => "Twitter"
             ),
             1 => array(
-                "uid" => "https://".$configs->mastodonInstance,
+                "uid" => "https://".$mastodonInstance,
                 "name" => "Mastodon"
             )
         )
@@ -301,14 +313,14 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
 // Offer micropub clients full configuration
 if (isset($_GET['q']) && $_GET['q'] == "config") {
     $array = array(
-        "media-endpoint" => $configs->mediaPoint,
+        "media-endpoint" => $mediaPoint,
         "syndicate-to" => array(
             0 => array(
                 "uid" => "https://twitter.com",
                 "name" => "Twitter"
             ),
             1 => array(
-                "uid" => "https://".$configs->mastodonInstance,
+                "uid" => "https://".$mastodonInstance,
                 "name" => "Mastodon"
             )
         )
@@ -359,7 +371,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
             $repl = "";
             $srcUri = preg_replace($pattern, $repl, $subj);
             $srcUri = rtrim($srcUri, "/");
-            if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
+            if ($textFile = file_get_contents($storageFolder . "/$srcUri.md")) {
 
                 //send file for decoding
                 $jsonArray = decode_input($textFile, $mfArray, true);
@@ -406,16 +418,16 @@ if (!empty($data)) {
                 $srcUri = rtrim($srcUri, "/");
                 // First delete if asked to
                 if ($action == "delete") {
-                    if (!is_dir($configs->trashFolder)) {
-                        mkdir($configs->trashFolder, 0777, true);
+                    if (!is_dir($trashFolder)) {
+                        mkdir($trashFolder, 0777, true);
                     }
-                    rename($configs->storageFolder . "/$srcUri.md", $configs->trashFolder . "/$srcUri.md");
+                    rename($storageFolder . "/$srcUri.md", $trashFolder . "/$srcUri.md");
                     header("HTTP/1.1 204 No Content");
                     exit;
                 }
                 // then an undelete
                 if ($action == "undelete") {
-                    rename($configs->trashFolder . "/$srcUri.md", $configs->storageFolder . "/$srcUri.md");
+                    rename($trashFolder . "/$srcUri.md", $storageFolder . "/$srcUri.md");
                     header("HTTP/1.1 201 Created");
                     header("Location: ".$siteUrl.$srcUri);
                     exit;
@@ -423,7 +435,7 @@ if (!empty($data)) {
                 // Update can be one of a number of different actions
                 if ($action == "update") {
                     // Updating, so need to read the existing file
-                    if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
+                    if ($textFile = file_get_contents($storageFolder . "/$srcUri.md")) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
 
@@ -485,7 +497,7 @@ if (!empty($data)) {
 
                         $content = $jsonArray['content'];
                         unset($jsonArray['content']);
-                        $fn = $configs->storageFolder . "/$srcUri.md";
+                        $fn = $storageFolder . "/$srcUri.md";
                         write_file($jsonArray, $content, $fn);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
@@ -666,26 +678,26 @@ if (!empty($data)) {
             if (!empty($frontmatter['title'])) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
-                    $fn = $configs->storageFolder . "/link/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
+                    $fn = $storageFolder . "/link/" . $frontmatter['slug'] . ".md";
+                    $canonical = $siteUrl . "link/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = $configs->storageFolder . "/article/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
+                    $fn = $storageFolder . "/article/" . $frontmatter['slug'] . ".md";
+                    $canonical = $siteUrl . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
-                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
+                    $canonical = $siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
-                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
+                    $canonical = $siteUrl . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } else {
-                    $fn = $configs->storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
+                    $fn = $storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
+                    $canonical = $siteUrl . "micro/" . $frontmatter['slug'];
                     $synText = $content;
                 }
             }
@@ -694,15 +706,15 @@ if (!empty($data)) {
 
             // first Mastodon, count limit 500
             if (!empty($synds)) {
-                if (in_array("https://".$configs->mastodonInstance, $synds)) {
+                if (in_array("https://".$mastodonInstance, $synds)) {
 
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
                     $MastodonText = urlencode($MastodonText);
                     $MastodonText = substr($MastodonText, 0, 450) . '… '. $canonical;
 
-                    $mastodonToken = "bearer " . $configs->mastodonToken;
-                    $mastodonUrl = "https://" . $configs->mastodonInstance . "/api/v1/statuses";
+                    $mastodonToken = "bearer " . $mastodonToken;
+                    $mastodonUrl = "https://" . $mastodonInstance . "/api/v1/statuses";
                     $mdata = array(
                         "status" => $MastodonText,
                     );
