@@ -1,2 +1,5 @@
 configs.php
 
+# composer
+composer_setup.php
+composer.phar
