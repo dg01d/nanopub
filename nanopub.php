@@ -25,6 +25,7 @@ $configs = include 'configs.php';
 
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
+$sitePath = $configs->sitePath;
 
 $storageFolder = $configs->storageFolder;
 $trashFolder = $configs->trashFolder;
@@ -45,7 +46,7 @@ date_default_timezone_set($configs->timezone);
 define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
 $cdate = date('c', time());
-$tokenPoint = $configs->tokenPoint
+$tokenPoint = $configs->tokenPoint;
 $xray = new p3k\XRay();
 
 /**
@@ -429,7 +430,7 @@ if (!empty($data)) {
                 if ($action == "undelete") {
                     rename($trashFolder . "/$srcUri.md", $storageFolder . "/$srcUri.md");
                     header("HTTP/1.1 201 Created");
-                    header("Location: ".$siteUrl.$srcUri);
+                    header("Location: ".$siteUrl.$sitePath.$srcUri);
                     exit;
                 }
                 // Update can be one of a number of different actions
@@ -679,25 +680,25 @@ if (!empty($data)) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
                     $fn = $storageFolder . "/link/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . "link/" . $frontmatter['slug'];
+                    $canonical = $siteUrl . $sitePath . "link/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 } else {
                     $fn = $storageFolder . "/article/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . "article/" . $frontmatter['slug'];
+                    $canonical = $siteUrl . $sitePath . "article/" . $frontmatter['slug'];
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
                     $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . "like/" . $frontmatter['slug'];
+                    $canonical = $siteUrl . $sitePath . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
                     $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . "like/" . $frontmatter['slug'];
+                    $canonical = $siteUrl . $sitePath . "like/" . $frontmatter['slug'];
                     $synText = $content;
                 } else {
                     $fn = $storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . "micro/" . $frontmatter['slug'];
+                    $canonical = $siteUrl . $sitePath . "micro/" . $frontmatter['slug'];
                     $synText = $content;
                 }
             }
