@@ -8,7 +8,7 @@
  * @license  https://opensource.org/licenses/FPL-1.0.0 0BSD
  * @link     https://github.com/dg01d/nanopub
  * @category Micropub
- * @version  1.5
+ * @version  2.0.0
  */
 
 require 'vendor/autoload.php';
@@ -22,10 +22,6 @@ use Symfony\Component\Yaml\Yaml;
  */
 
 $configs = include 'configs.php';
-$twAPIkey = $configs->twAPIkey;
-$twAPIsecret = $configs->twAPIsecret;
-$twUserKey = $configs->twUserKey;
-$twUserSecret = $configs->twUserSecret;
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
 $weatherToggle = $configs->weatherToggle;
@@ -283,10 +279,6 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     $array = array(
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://twitter.com",
-                "name" => "Twitter"
-            ),
-            1 => array(
                 "uid" => "https://".$configs->mastodonInstance,
                 "name" => "Mastodon"
             )
@@ -304,10 +296,6 @@ if (isset($_GET['q']) && $_GET['q'] == "config") {
         "media-endpoint" => $configs->mediaPoint,
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://twitter.com",
-                "name" => "Twitter"
-            ),
-            1 => array(
                 "uid" => "https://".$configs->mastodonInstance,
                 "name" => "Mastodon"
             )
@@ -587,9 +575,6 @@ if (!empty($data)) {
                 if (isset($frontmatter['repost_of'])) {
                     $frontmatter['repost_site'] = hostname_of_uri($frontmatter['repost_of']);
                     $url_parse = xray_machine($frontmatter['repost_of'], $frontmatter['repost_site']);
-                    if ($frontmatter['repost_site'] == 'twitter.com') {
-                        $synds['0'] = "https://twitter.com";
-                    }
                 }
                 unset($props['repost-of']);
 
@@ -601,9 +586,6 @@ if (!empty($data)) {
                 if (isset($frontmatter['replytourl'])) {
                     $frontmatter['replysite'] = hostname_of_uri($frontmatter['replytourl']);
                     $url_parse = xray_machine($frontmatter['replytourl'], $frontmatter['replysite']);
-                    if ($frontmatter['replysite'] == 'twitter.com') {
-                        $synds['0'] = "https://twitter.com";
-                    }
                 }
                 unset($props['in-reply-to']);
 
@@ -711,59 +693,6 @@ if (!empty($data)) {
                     $array_mastodon = json_decode($result_mastodon, true);
                     // Sets up a variable linking to the toot
                     $frontmatter['mastodonlink'] = $array_mastodon['url'];
-                }
-
-                // then twitter, with its useless 140 chars
-                if (in_array("https://twitter.com", $synds)) {
-
-                    $TwText = substr($synText, 0, 260) . '… '. $canonical;
-
-                    // Calls the external Twitter Library
-
-                    $settings = array(
-                        'consumer_key' => $twAPIkey,
-                        'consumer_secret' => $twAPIsecret,
-                        'oauth_access_token' => $twUserKey,
-                        'oauth_access_token_secret' => $twUserSecret
-                        );
-
-                    $url = 'https://api.twitter.com/1.1/statuses/update.json';
-                    $requestMethod = 'POST';
-                    $postfields = array(
-                        'status' => $TwText
-                        );
-
-                    if ((isset($frontmatter['replytourl']) && $frontmatter['replysite'] == "twitter.com")) {
-                        $postfields['in_reply_to_status_id'] = tw_url_to_status_id($frontmatter['replytourl']);
-                        $postfields['auto_populate_reply_metadata'] = true;
-                    }
-                    if ((isset($frontmatter['like_of'])) && ($frontmatter['like_site'] == "twitter.com")) {
-                        $url = 'https://api.twitter.com/1.1/favorites/create.json';
-                        $postfields['id'] = tw_url_to_status_id($frontmatter['like_of']);
-                        unset($postfields['status']);
-                    }
-                    if ((isset($frontmatter['repost_of'])) && ($frontmatter['repost_site'] == "twitter.com")) {
-                        $id = tw_url_to_status_id($frontmatter['repost_of']);
-                        $url = 'https://api.twitter.com/1.1/statuses/retweet/' . $id . '.json';
-                        $postfields['id'] = $id;
-                        unset($postfields['status']);
-                    }
-
-                    //Perform a POST request and echo the response
-
-                    $twitter = new TwitterAPIExchange($settings);
-                    $twarray = json_decode(
-                        $twitter->buildOauth($url, $requestMethod)
-                            ->setPostfields($postfields)
-                            ->performRequest()
-                    );
-                    if ((isset($frontmatter['repost_of'])) || (isset($frontmatter['like_of']))) {
-                        $frontmatter['twitlink'] = isset($frontmatter['repost_of']) ? $frontmatter['repost_of'] : $frontmatter['like_of'];
-                    } else {
-                        $str = $twarray->id_str;
-                        $nym = $twarray->user->screen_name;
-                        $frontmatter['twitlink'] = "https://twitter.com/" . $nym . "/status/" . $str;
-                    }
                 }
             }
 

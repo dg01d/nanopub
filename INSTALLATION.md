@@ -34,8 +34,7 @@ Then edit the included `configs.php` file to enable various features. The full f
 	'storageFolder' => '../content',						// the folder to store the posts in
 	'trashFolder' => '../trash',							// the folder to move removed posts into
 	
-	// Config Block for Twitter
-	'twitterName' => 'poopyCakes',					// your twitter account name, don't use the @
+	// Config Block for Twitter -- Used only for XRay for rich context replies
 	'twAPIkey' => 'WomtvR2YoT',						// Create an app on dev.twitter.com for your account.
 	'twAPIsecret' => 'NILIDJXg1e',					// APIkey & APIsecret are the APP's key & Secret
 	'twUserKey' => 'ILs4jUS7a6',					// UserKey & User Secret are under 'Your access token'
@@ -67,11 +66,11 @@ Then edit the included `configs.php` file to enable various features. The full f
 
 ### Notes
 
-- Twitter Keys can be obtained using the [Create New App](https://apps.twitter.com/app/new) on twitter.
 - Mastodon Keys are more command-line driven, but relatively straightforward. See [the Mastodon API documentation](https://github.com/tootsuite/documentation/blob/master/Using-the-API/Testing-with-cURL.md)
 - As Mastodon is a federated network, you do need to _explicitly_ specify your Mastodon Instance.
 - If using the micro.blog function, you need to specify your site's rss/atom feed.
 - To use the weather data, you'll need to add access data for a location-tracking endpoint (like a self-hosted version of [Compass](https://github.com/aaronpk/Compass)) and a DarkSky [API Key](https://darksky.net/dev/docs)
+- Twitter Keys can be obtained using the [Create New App](https://apps.twitter.com/app/new) on twitter.
 - Since 1.5, you can configure the frontmatter format for your posts. Currently the options are json, used in [Hugo](https://gohugo.io/content-management/front-matter/), or yaml, optionally used in Hugo, but required by other static engines such as [Jekyll](https://jekyllrb.com/docs/frontmatter/) or [Metalsmith](http://www.metalsmith.io). This could be used with other generators, such as [Pelican](docs.getpelican.com/en/stable/content.html), but the script would need to be changed to meet their specific format requirements.
 
 
@@ -88,7 +87,6 @@ On my site, these headers are provided as follows:
   <link rel="authorization_endpoint" href="https://indieauth.com/auth" />
   <link rel="token_endpoint" href="https://tokens.indieauth.com/token" />
   <link rel="micropub" href="https://ascraeus.org/nanopub.php" />
-
 ```
 
 ### Data Structure
@@ -99,8 +97,9 @@ The location of the data store - where the script places your posts - is set wit
 /srv
 |-- output
 |-- content
-    |-- micro
-    |-- article
-    |-- like
-    |-- link
+|    |-- micro
+|    |-- article
+|    |-- like
+|    |-- link
+|-- trash
 ```

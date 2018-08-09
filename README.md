@@ -1,6 +1,8 @@
 MicroPub support for Static Blog Engine
 =======================================
 
+**Note** This release removes support for syndicating to twitter.com.
+
 This php script provides micropub support for Static Site Generators. Incoming posts are rewritten to a suitable front-matter format and saved to the user's content store.
 
 Currently, the script will handle the following indieweb functions:-
@@ -30,7 +32,7 @@ Optional
 
 [Full implementation report](https://micropub.rocks/implementation-reports/servers/132/dohoQpnIdZYxrwcpMgzj) is available on [micropub.rocks](https://micropub.rocks/)
 
-**nanopub** additionally supports syndication of content to external silos. Currently it provides syndication to [Twitter](https://twitter.com) and [Mastodon](https://mastodon.social), although it also provides a framework implementation for any modern API-based endpoint. An example is provided of the script pinging the [micro.blog](https://micro.blog) service to update the user's feed.
+**nanopub** additionally supports syndication of content to external silos. Currently it provides syndication to [Mastodon](https://mastodon.social), although it also provides a framework implementation for any modern API-based endpoint. An example is provided of the script pinging the [micro.blog](https://micro.blog) service to update the user's feed.
 
 The code is self-explanatory and documented, and can be adjusted easily to meet different needs.
 
@@ -50,12 +52,6 @@ Any errors resulting from use of the deprecated formats are a matter for the cli
 
 TODO
 ----
-* [X] Save all content in the correct Hugo JSON format
-* [X] Read all content from disk in correct microformats2 syntax
-* [X] Make it work with a more complete set of micropub features
-* [X] Reply-to
-* [X] Like-Of
-* [X] Repost-Of
 * [ ] Make a `setup.php` script to complete the required configuration settings.
 * [ ] Implement rsvp's, itineraries &c
 * [ ] Trigger sitegen on succesful operation.
@@ -78,6 +74,7 @@ Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+2.0.0| 2018-08-09 | Removed support for syndication to twitter
 1.5.1| 2018-04-12 | Clarified Installation & packaged vendor files
 1.5 | 2018-02-01 | Added configurable frontmatter, currently json or yaml
 1.4 | 2018-01-26 | Extended for weather reporting, and rich-context likes/reposts

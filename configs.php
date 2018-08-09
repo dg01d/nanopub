@@ -9,8 +9,7 @@ return (object) array(
 	'storageFolder' => '../content',						// the folder to store the posts in
 	'trashFolder' => '../trash',							// the folder to move removed posts into
 	
-	// Config Block for Twitter
-	'twitterName' => 'poopyCakes',							// your twitter account name, don't use the @
+	// Config Block for Twitter -- Used only for XRay for rich context replies
 	'twAPIkey' => 'WomtvR2YoT',								// Create an app on dev.twitter.com for your account.
 	'twAPIsecret' => 'NILIDJXg1e',							// APIkey & APIsecret are the APP's key & Secret
 	'twUserKey' => 'ILs4jUS7a6',							// UserKey & User Secret are under 'Your access token'
