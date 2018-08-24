@@ -3,13 +3,15 @@
 return (object) array(
 	// First some settings for the site
 	'siteUrl' => 'https://example.com/',					// the URL for your site - note trailing slash
-	'timezone' => 'Europe/London',							// http://php.net/manual/en/timezones.php
+	'sitePath' => '',										// the path to your site, appended to URL, note trailing slash
+	'timezone' => 'Europe/Brussels',						// http://php.net/manual/en/timezones.php
 	'mediaPoint' => 'https://media.org/endpoint',			// Micropub Media Endpoint
 	'tokenPoint' => 'https://tokens.indieauth.com/token',	// IndieAuth Token Endpoint
-	'storageFolder' => '../content',						// the folder to store the posts in
-	'trashFolder' => '../trash',							// the folder to move removed posts into
+	'storageFolder' => '../grav/user/pages/01.blog',		// the folder to store the posts in
+	'trashFolder' => './trash',								// the folder to move removed posts into
 	
-	// Config Block for Twitter -- Used only for XRay for rich context replies
+	// Config Block for Twitter
+	'twitterName' => 'poopyCakes',							// your twitter account name, don't use the @
 	'twAPIkey' => 'WomtvR2YoT',								// Create an app on dev.twitter.com for your account.
 	'twAPIsecret' => 'NILIDJXg1e',							// APIkey & APIsecret are the APP's key & Secret
 	'twUserKey' => 'ILs4jUS7a6',							// UserKey & User Secret are under 'Your access token'
@@ -32,8 +34,17 @@ return (object) array(
 	'defaultLong' => '0.1278',
 	'defaultLoc' => 'London',
 
+	// Hugo and Jekyll save files directly
+	// Grav and Kirby store in subfolders
+	// Set destination and template 
+	'outputDestination' => 'folder',                          // 'file' or 'folder'
+	'outputTemplate' => 'item',                            // for Grav, usually 'item'
+
 	// Set Frontmatter Format -- json or yaml
-	'frontFormat' => 'json'
+	// Hugo: json
+	// Jekyll, Grav: yaml
+	'frontFormat' => 'yaml'
+
 );
 
 ?>

@@ -23,11 +23,13 @@ Download the release .zip file from [here](https://github.com/dg01d/nanopub/rele
 
 ### Configuration
 
-Then edit the included `configs.php` file to enable various features. The full file, including comments is as follows:
+Copy one of the supplied configuration samples to `configs.php`.
+Then edit `configs.php` file to enable various features. The full file, including comments is as follows:
 
 ```
 	// First some settings for the site
 	'siteUrl' => 'https://example.com/',			// the URL for your site - note trailing slash
+	'sitePath' ==> '',										// the path to your site, appended to URL, note trailing slash
 	'timezone' => 'Europe/London',					// http://php.net/manual/en/timezones.php
 	'mediaPoint' => 'https://media.org/endpoint',	// Micropub Media Endpoin
     'tokenPoint' => 'https://tokens.indieauth.com/token',	// IndieAuth Token Endpoint

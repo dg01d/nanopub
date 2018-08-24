@@ -22,14 +22,30 @@ use Symfony\Component\Yaml\Yaml;
  */
 
 $configs = include 'configs.php';
+
 $siteUrl = $configs->siteUrl;
 $siteFeed = $configs->siteFeed;
+$sitePath = $configs->sitePath;
+
+$storageFolder = $configs->storageFolder;
+$trashFolder = $configs->trashFolder;
+
+$mediaPoint = $configs->mediaPoint;
+
+$twAPIkey = $configs->twAPIkey;
+$twAPIsecret = $configs->twAPIsecret;
+$twUserKey = $configs->twUserKey;
+$twUserSecret = $configs->twUserSecret;
+
+$mastodonInstance = $configs->mastodonInstance;
+$mastodonToken = $configs->mastodonToken;
+
 $weatherToggle = $configs->weatherToggle;
+
 date_default_timezone_set($configs->timezone);
-define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
 $cdate = date('c', time());
-
+$tokenPoint = $configs->tokenPoint;
 $xray = new p3k\XRay();
 
 /**
@@ -133,14 +149,16 @@ function indieAuth($headers)
 
     $scopes = isset($response['scope']) ? explode(' ', $response['scope']) : array();
 
-    if (empty($response) || isset($response['error'])) {
+    if (empty($response))  {
         header("HTTP/1.1 401 Unauthorized");
-        echo 'The request lacks authentication credentials';
+        echo 'The request lacks authentication credentials / empty';
+        exit;
+    } elseif (isset($response['error'])) {
+        header("HTTP/1.1 401 Unauthorized");
+        echo 'The request lacks authentication credentials / isset';
         exit;
     } elseif (!isset($response['me']) || $response['me'] !== $configs->siteUrl) {
         header("HTTP/1.1 401 Unauthorized");
-        echo 'The request lacks valid authentication credentials';
-        exit;
     } elseif (!in_array('create', $scopes) && !in_array('post', $scopes)) {
         header("HTTP/1.1 403 Forbidden");
         echo 'Client does not have access to this resource';
@@ -187,7 +205,7 @@ function array_replace_keys($array, $keys, $filter)
 function decode_input($textFile, $mfArray, $bool)
 {
     $topArray = explode("\n\n", $textFile);
-    if (FRONT == "yaml") {
+    if ($configs->frontFormat == "yaml") {
         $fileArray = Yaml::parse($topArray[0]);
     } else {
         $fileArray = json_decode($topArray[0], true);
@@ -229,6 +247,44 @@ function recode_output($array, $mfArray)
     return $postArray;
 }
 
+
+/**
+ * Set canonical link
+ *
+ */
+function set_mp_canonical($slug, $kind, $path)
+{
+    // get access to configs
+    global $configs;
+    $dest = $configs->outputDestination;
+
+    if ($dest == "file")
+    {
+        return $path . $kind . '/' . $slug ;
+    } else {
+        return $path . $slug . '/';
+    }
+}
+
+/**
+ * Set filename
+ *
+ */
+function set_mp_filename($slug, $kind, $path)
+{
+    // get access to configs
+    global $configs;
+    $dest = $configs->outputDestination;
+    $template = $configs->outputTemplate;
+    
+    if ($dest == "file")
+    {
+        return $path . "/". $kind . "/". $slug . ".md";
+    } else {
+        return $path . "/" . $slug . "/". $template . ".md";
+    }
+}
+
 /**
  * Writes dataset to file.
  * @since 1.1
@@ -237,11 +293,13 @@ function recode_output($array, $mfArray)
  * @param array $frontmatter Frontmatter for the file (e.g. title, slug)
  * @param string $content    The content of the file/post/reply
  * @param string $fn         The filename of the file to be written
+ * @param string $format     The frontmatter format ("yaml" or "json")
  */
-function write_file($frontmatter, $content, $fn)
+function write_file($frontmatter, $content, $fn, $format)
 {
+
     $frontmatter = array_filter($frontmatter);
-    if (FRONT == "yaml") {
+    if ($format == "yaml") {
         $yaml = Yaml::dump($frontmatter);
         $frontFinal = "---\n" . $yaml . "---\n\n";
     } else {
@@ -259,7 +317,6 @@ function write_file($frontmatter, $content, $fn)
 
 // This variable is used for the json_encode() functions later in the script.
 // You can change these depending on your needs.
-
 $jsonFormat = JSON_PRETTY_PRINT | JSON_NUMBER_CHECK | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
 // This array pairs Hugo namespace with mf2 namespace.
@@ -279,7 +336,11 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
     $array = array(
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://".$configs->mastodonInstance,
+                "uid" => "https://twitter.com",
+                "name" => "Twitter"
+            ),
+            1 => array(
+                "uid" => "https://".$mastodonInstance,
                 "name" => "Mastodon"
             )
         )
@@ -293,10 +354,14 @@ if (isset($_GET['q']) && $_GET['q'] == "syndicate-to") {
 // Offer micropub clients full configuration
 if (isset($_GET['q']) && $_GET['q'] == "config") {
     $array = array(
-        "media-endpoint" => $configs->mediaPoint,
+        "media-endpoint" => $mediaPoint,
         "syndicate-to" => array(
             0 => array(
-                "uid" => "https://".$configs->mastodonInstance,
+                "uid" => "https://twitter.com",
+                "name" => "Twitter"
+            ),
+            1 => array(
+                "uid" => "https://".$mastodonInstance,
                 "name" => "Mastodon"
             )
         )
@@ -347,7 +412,7 @@ if (isset($_GET['q']) && $_GET['q'] == 'source') {
             $repl = "";
             $srcUri = preg_replace($pattern, $repl, $subj);
             $srcUri = rtrim($srcUri, "/");
-            if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
+            if ($textFile = file_get_contents($storageFolder . "/$srcUri.md")) {
 
                 //send file for decoding
                 $jsonArray = decode_input($textFile, $mfArray, true);
@@ -394,24 +459,24 @@ if (!empty($data)) {
                 $srcUri = rtrim($srcUri, "/");
                 // First delete if asked to
                 if ($action == "delete") {
-                    if (!is_dir($configs->trashFolder)) {
-                        mkdir($configs->trashFolder, 0777, true);
+                    if (!is_dir($trashFolder)) {
+                        mkdir($trashFolder, 0777, true);
                     }
-                    rename($configs->storageFolder . "/$srcUri.md", $configs->trashFolder . "/$srcUri.md");
+                    rename($storageFolder . "/$srcUri.md", $trashFolder . "/$srcUri.md");
                     header("HTTP/1.1 204 No Content");
                     exit;
                 }
                 // then an undelete
                 if ($action == "undelete") {
-                    rename($configs->trashFolder . "/$srcUri.md", $configs->storageFolder . "/$srcUri.md");
+                    rename($trashFolder . "/$srcUri.md", $storageFolder . "/$srcUri.md");
                     header("HTTP/1.1 201 Created");
-                    header("Location: ".$siteUrl.$srcUri);
+                    header("Location: ".$siteUrl.$sitePath.$srcUri);
                     exit;
                 }
                 // Update can be one of a number of different actions
                 if ($action == "update") {
                     // Updating, so need to read the existing file
-                    if ($textFile = file_get_contents($configs->storageFolder . "/$srcUri.md")) {
+                    if ($textFile = file_get_contents($storageFolder . "/$srcUri.md")) {
                         //send file for decoding
                         $jsonArray = decode_input($textFile, $mfArray, false);
 
@@ -473,8 +538,8 @@ if (!empty($data)) {
 
                         $content = $jsonArray['content'];
                         unset($jsonArray['content']);
-                        $fn = $configs->storageFolder . "/$srcUri.md";
-                        write_file($jsonArray, $content, $fn);
+                        $fn = $storageFolder . "/$srcUri.md";
+                        write_file($jsonArray, $content, $fn, $configs->frontFormat);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
 
@@ -648,26 +713,26 @@ if (!empty($data)) {
             if (!empty($frontmatter['title'])) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
-                    $fn = $configs->storageFolder . "/link/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "link/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "link", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "link", $siteUrl . $sitePath);
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = $configs->storageFolder . "/article/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "article/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "article", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "article", $siteUrl . $sitePath);
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
-                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "like", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "like", $siteUrl . $sitePath);
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
-                    $fn = $configs->storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "like/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "like", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "like", $siteUrl . $sitePath);
                     $synText = $content;
                 } else {
-                    $fn = $configs->storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
-                    $canonical = $configs->siteUrl . "micro/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "micro", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "micro", $siteUrl . $sitePath);
                     $synText = $content;
                 }
             }
@@ -676,15 +741,15 @@ if (!empty($data)) {
 
             // first Mastodon, count limit 500
             if (!empty($synds)) {
-                if (in_array("https://".$configs->mastodonInstance, $synds)) {
+                if (in_array("https://".$mastodonInstance, $synds)) {
 
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
                     $MastodonText = urlencode($MastodonText);
                     $MastodonText = substr($MastodonText, 0, 450) . '… '. $canonical;
 
-                    $mastodonToken = "bearer " . $configs->mastodonToken;
-                    $mastodonUrl = "https://" . $configs->mastodonInstance . "/api/v1/statuses";
+                    $mastodonToken = "bearer " . $mastodonToken;
+                    $mastodonUrl = "https://" . $mastodonInstance . "/api/v1/statuses";
                     $mdata = array(
                         "status" => $MastodonText,
                     );
@@ -699,7 +764,7 @@ if (!empty($data)) {
             // All values obtained, we tidy up the array and convert to json
             // Last part - writing the file to disk...
 
-            write_file($frontmatter, $content, $fn);
+            write_file($frontmatter, $content, $fn, $configs->frontFormat);
 
             // Some way of triggering Site Generator needs to go in here.
 
