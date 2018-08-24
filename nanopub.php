@@ -149,14 +149,16 @@ function indieAuth($headers)
 
     $scopes = isset($response['scope']) ? explode(' ', $response['scope']) : array();
 
-    if (empty($response) || isset($response['error'])) {
+    if (empty($response))  {
         header("HTTP/1.1 401 Unauthorized");
-        echo 'The request lacks authentication credentials';
+        echo 'The request lacks authentication credentials / empty';
         exit;
-    } elseif (!isset($response['me']) || $response['me'] !== $siteUrl) {
+    } elseif (isset($response['error'])) {
         header("HTTP/1.1 401 Unauthorized");
-        echo 'The request lacks valid authentication credentials';
+        echo 'The request lacks authentication credentials / isset';
         exit;
+    } elseif (!isset($response['me']) || $response['me'] !== $configs->siteUrl) {
+        header("HTTP/1.1 401 Unauthorized");
     } elseif (!in_array('create', $scopes) && !in_array('post', $scopes)) {
         header("HTTP/1.1 403 Forbidden");
         echo 'Client does not have access to this resource';
