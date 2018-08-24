@@ -3,7 +3,7 @@
 return (object) array(
 	// First some settings for the site
 	'siteUrl' => 'https://example.com/',					// the URL for your site - note trailing slash
-	'sitePath' ==> '',										// the path to your site, appended to URL, note trailing slash
+	'sitePath' => '',										// the path to your site, appended to URL, note trailing slash
 	'timezone' => 'Europe/London',							// http://php.net/manual/en/timezones.php
 	'mediaPoint' => 'https://media.org/endpoint',			// Micropub Media Endpoint
 	'tokenPoint' => 'https://tokens.indieauth.com/token',	// IndieAuth Token Endpoint
