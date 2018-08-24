@@ -43,7 +43,6 @@ $mastodonToken = $configs->mastodonToken;
 $weatherToggle = $configs->weatherToggle;
 
 date_default_timezone_set($configs->timezone);
-define("FRONT", $configs->frontFormat);
 $udate = date('U', time());
 $cdate = date('c', time());
 $tokenPoint = $configs->tokenPoint;
@@ -131,7 +130,7 @@ function indieAuth($headers)
      * Check token is valid
      */
     $token = $headers['authorization'];
-    $ch = curl_init($tokenPoint);
+    $ch = curl_init($configs->tokenPoint);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt(
         $ch, CURLOPT_HTTPHEADER, Array(
@@ -204,7 +203,7 @@ function array_replace_keys($array, $keys, $filter)
 function decode_input($textFile, $mfArray, $bool)
 {
     $topArray = explode("\n\n", $textFile);
-    if (FRONT == "yaml") {
+    if ($configs->frontFormat == "yaml") {
         $fileArray = Yaml::parse($topArray[0]);
     } else {
         $fileArray = json_decode($topArray[0], true);
@@ -246,6 +245,44 @@ function recode_output($array, $mfArray)
     return $postArray;
 }
 
+
+/**
+ * Set canonical link
+ *
+ */
+function set_mp_canonical($slug, $kind, $path)
+{
+    // get access to configs
+    global $configs;
+    $dest = $configs->outputDestination;
+
+    if ($dest == "file")
+    {
+        return $path . $kind . '/' . $slug ;
+    } else {
+        return $path . $slug . '/';
+    }
+}
+
+/**
+ * Set filename
+ *
+ */
+function set_mp_filename($slug, $kind, $path)
+{
+    // get access to configs
+    global $configs;
+    $dest = $configs->outputDestination;
+    $template = $configs->outputTemplate;
+    
+    if ($dest == "file")
+    {
+        return $path . "/". $kind . "/". $slug . ".md";
+    } else {
+        return $path . "/" . $slug . "/". $template . ".md";
+    }
+}
+
 /**
  * Writes dataset to file.
  * @since 1.1
@@ -254,11 +291,13 @@ function recode_output($array, $mfArray)
  * @param array $frontmatter Frontmatter for the file (e.g. title, slug)
  * @param string $content    The content of the file/post/reply
  * @param string $fn         The filename of the file to be written
+ * @param string $format     The frontmatter format ("yaml" or "json")
  */
-function write_file($frontmatter, $content, $fn)
+function write_file($frontmatter, $content, $fn, $format)
 {
+
     $frontmatter = array_filter($frontmatter);
-    if (FRONT == "yaml") {
+    if ($format == "yaml") {
         $yaml = Yaml::dump($frontmatter);
         $frontFinal = "---\n" . $yaml . "---\n\n";
     } else {
@@ -276,7 +315,6 @@ function write_file($frontmatter, $content, $fn)
 
 // This variable is used for the json_encode() functions later in the script.
 // You can change these depending on your needs.
-
 $jsonFormat = JSON_PRETTY_PRINT | JSON_NUMBER_CHECK | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
 // This array pairs Hugo namespace with mf2 namespace.
@@ -499,7 +537,7 @@ if (!empty($data)) {
                         $content = $jsonArray['content'];
                         unset($jsonArray['content']);
                         $fn = $storageFolder . "/$srcUri.md";
-                        write_file($jsonArray, $content, $fn);
+                        write_file($jsonArray, $content, $fn, $configs->frontFormat);
                         header("HTTP/1.1 200 OK");
                         echo json_encode($jsonArray, 128);
 
@@ -679,26 +717,26 @@ if (!empty($data)) {
             if (!empty($frontmatter['title'])) {
                 // File locations are specific to my site for now.
                 if (!empty($frontmatter['link'])) {
-                    $fn = $storageFolder . "/link/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . $sitePath . "link/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "link", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "link", $siteUrl . $sitePath);
                     $synText = $frontmatter['title'];
                 } else {
-                    $fn = $storageFolder . "/article/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . $sitePath . "article/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "article", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "article", $siteUrl . $sitePath);
                     $synText = $frontmatter['title'];
                 }
             } else { 
                 if (!empty($frontmatter['repost_of'])) {
-                    $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . $sitePath . "like/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "like", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "like", $siteUrl . $sitePath);
                     $synText = $content;
                 } elseif (!empty($frontmatter['like_of'])) {
-                    $fn = $storageFolder . "/like/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . $sitePath . "like/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "like", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "like", $siteUrl . $sitePath);
                     $synText = $content;
                 } else {
-                    $fn = $storageFolder . "/micro/" . $frontmatter['slug'] . ".md";
-                    $canonical = $siteUrl . $sitePath . "micro/" . $frontmatter['slug'];
+                    $fn = set_mp_filename($frontmatter['slug'], "micro", $storageFolder);
+                    $canonical = set_mp_canonical($frontmatter['slug'], "micro", $siteUrl . $sitePath);
                     $synText = $content;
                 }
             }
@@ -783,7 +821,7 @@ if (!empty($data)) {
             // All values obtained, we tidy up the array and convert to json
             // Last part - writing the file to disk...
 
-            write_file($frontmatter, $content, $fn);
+            write_file($frontmatter, $content, $fn, $configs->frontFormat);
 
             // Some way of triggering Site Generator needs to go in here.
 
