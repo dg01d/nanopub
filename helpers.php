@@ -1,5 +1,22 @@
 <?php
 
+/**
+ * nanopub - MicroPub support for Static Blog Engine
+ *
+ * PHP version 7
+ *
+ * @author      Daniel Goldsmith <dgold@ascraeus.org>
+ * @copyright   © 2017-2019 Daniel Goldsmith <dgold@ascraeus.org>
+ * @license     BSD 3-Clause Clear Licence
+ * @link        https://github.com/dg01d/nanopub
+ * @category    Micropub
+ * @version     2.0.0
+ *
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
+ */
+
+
 use GuzzleHttp\Client;
 use Forecast\Forecast;
 

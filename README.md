@@ -54,7 +54,6 @@ TODO
 ----
 * [ ] Make a `setup.php` script to complete the required configuration settings.
 * [ ] Implement rsvp's, itineraries &c
-* [ ] Trigger sitegen on succesful operation.
 
 Author
 ---
@@ -62,7 +61,7 @@ Author
 
 Licences
 --------
-- **nanopub** is released under the [Zero Clause BSD Licence](https://opensource.org/licenses/FPL-1.0.0) (0BSD).
+- **nanopub** is released under the [BSD 3-Clause Clear Licence](https://choosealicense.com/licenses/bsd-3-clause-clear/) (BSD-3-Clause-Clear).
 
 Acknowledgments
 ---------------
@@ -74,6 +73,7 @@ Changes
 -------
 Version | Date | Notes
 -------:|:----:|:-----
+2.0.1| 2019-01-04 | Changed licence to BSD 3-Clause Clear
 2.0.0| 2018-08-09 | Removed support for syndication to twitter
 1.5.1| 2018-04-12 | Clarified Installation & packaged vendor files
 1.5 | 2018-02-01 | Added configurable frontmatter, currently json or yaml

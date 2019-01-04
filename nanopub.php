@@ -4,11 +4,15 @@
  *
  * PHP version 7
  *
- * @author   Daniel Goldsmith <dgold@ascraeus.org>
- * @license  https://opensource.org/licenses/FPL-1.0.0 0BSD
- * @link     https://github.com/dg01d/nanopub
- * @category Micropub
- * @version  2.0.0
+ * @author      Daniel Goldsmith <dgold@ascraeus.org>
+ * @copyright   © 2017-2019 Daniel Goldsmith <dgold@ascraeus.org>
+ * @license     BSD 3-Clause Clear Licence
+ * @link        https://github.com/dg01d/nanopub
+ * @category    Micropub
+ * @version     2.0.0
+ *
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ *
  */
 
 require 'vendor/autoload.php';
@@ -612,7 +616,8 @@ if (!empty($data)) {
                 $frontmatter['summary'] = $props['summary']['0'] ?? null; 
                 unset($props['summary']);
 
-                // server allows clients to set category, treats as tags 
+                // server allows clients to set category, treats as tags
+                // Todo: need to link this to content/subject in Mastodon 
                 $frontmatter['tags'] = $props['category'] ?? null;
                 unset($props['category']);
 
@@ -678,6 +683,9 @@ if (!empty($data)) {
             if (!empty($synds)) {
                 if (in_array("https://".$configs->mastodonInstance, $synds)) {
 
+                    // this allows you to post to mastodon under a CW, using tags
+                    $MastodonSubject = implode(", ", $frontmatter['tags']);
+
                     $MastodonText = str_replace("\'", "'", $synText);
                     $MastodonText = str_replace("\&quot;", "\"", $MastodonText);
                     $MastodonText = urlencode($MastodonText);
@@ -685,9 +693,13 @@ if (!empty($data)) {
 
                     $mastodonToken = "bearer " . $configs->mastodonToken;
                     $mastodonUrl = "https://" . $configs->mastodonInstance . "/api/v1/statuses";
-                    $mdata = array(
+                    $postData = array(
                         "status" => $MastodonText,
+                        "content-type" => "text/markdown",
+                        "spoiler_text" => $MastodonSubject
                     );
+                    // filters out an empty spoiler_text
+                    $mdata = array_filter($postData);
                     // Calls the simple API from way back at the start
                     $result_mastodon = post_to_api($mastodonUrl, $mastodonToken, $mdata);
                     $array_mastodon = json_decode($result_mastodon, true);
