@@ -1,6 +1,8 @@
 MicroPub support for Static Blog Engine
 =======================================
 
+**Following long deliberation, all development will take place at [https://ringdown.ascraeus.org/dgold/nanopub](https://ringdown.ascraeus.org/dgold/nanopub)**
+
 **Note** This release removes support for syndicating to twitter.com.
 
 This php script provides micropub support for Static Site Generators. Incoming posts are rewritten to a suitable front-matter format and saved to the user's content store.
